@@ -938,7 +938,7 @@ class SoftmaxLayer(CostLayer):
                 print "".join(sen),
             else:
                 for k in xrange(inps[0].shape[0]):
-                    print model.word_indxs_src[inps[0][k]],
+                    print model.word_indxs_src.get(inps[0][k]),
                     if model.word_indxs_src[inps[0][k]] == '<eol>':
                         break
             print ''
@@ -952,8 +952,9 @@ class SoftmaxLayer(CostLayer):
                 print "".join(sen),
             else:
                 for k in xrange(values.shape[0]):
-                    print model.word_indxs[values[k]],
-                    if model.word_indxs[values[k]] == '<eol>':
+                    v = model.word_indxs.get(values[k])
+                    print v,
+                    if v == '<eol>':
                         break
             print
             print
@@ -1223,7 +1224,7 @@ class HierarchicalSoftmaxLayer(SoftmaxLayer):
             self.bias_fn(self.n_class, self.bias_scale, self.rng),
             name='b_%s' % self.name)
 
-        U_em = theano.shared(((self.rng.rand(self.iBlocks, self.n_class, 
+        U_em = theano.shared(((self.rng.rand(self.iBlocks, self.n_class,
             self.n_in, self.n_words_class)-0.5)/(self.n_words_class*self.n_in)
             ).astype(theano.config.floatX), name='U_%s'%self.name)
         self.U_em = U_em
@@ -1289,7 +1290,7 @@ class HierarchicalSoftmaxLayer(SoftmaxLayer):
             class_val = utils.softmax(TT.dot(emb_val, W_em) + b_em)
 
             # compute the word probabilities
-            word_val = utils.softmax(self.sparse_block_dot_SS(U_em, 
+            word_val = utils.softmax(self.sparse_block_dot_SS(U_em,
                 emb_val[:, None, :], TT.zeros((bs, 1), dtype='int64'), c_em, outputIdx)[:, 0, :])
 
             class_val = class_val[TT.arange(bs), class_vec]

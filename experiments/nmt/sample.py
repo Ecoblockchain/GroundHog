@@ -5,7 +5,13 @@ import cPickle
 import traceback
 import logging
 import time
+import csv
+
 import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+
 
 import numpy
 
@@ -130,9 +136,10 @@ class BeamSearch(object):
             if ignore_unk:
                 logger.warning("Did not manage without UNK")
                 return self.search(seq, n_samples, False, minlen)
-            elif n_samples < 500:
-                logger.warning("Still no translations: try beam size {}".format(n_samples * 2))
-                return self.search(seq, n_samples * 2, False, minlen)
+            elif n_samples < 200:
+                new_beam_size = 200
+                logger.warning("Still no translations: try beam size {}".format(new_beam_size))
+                return self.search(seq, new_beam_size, False, minlen)
             else:
                 logger.error("Translation failed")
 
@@ -263,9 +270,10 @@ class BeamSearch(object):
 def indices_to_words(i2w, seq):
     sen = []
     for k in xrange(len(seq)):
-        if i2w[seq[k]] == '<eol>':
-            break
-        sen.append(i2w[seq[k]])
+        if seq[k] in i2w:
+            if i2w[seq[k]] == '<eol>':
+                break
+            sen.append(i2w[seq[k]])
     return sen
 
 def sample(lm_model, seq, truth, n_samples,
@@ -296,7 +304,7 @@ def sample(lm_model, seq, truth, n_samples,
             costs = [co / cn for co, cn in zip(costs, counts)]
         for i in range(len(trans)):
             sen = indices_to_words(lm_model.word_indxs, trans[i])
-            sentences.append(" ".join(sen))
+            sentences.append("".join(sen))
         for i in range(len(costs)):
             if verbose:
                 print "{}: {}".format(costs[i], sentences[i])
@@ -430,6 +438,7 @@ def main():
 
         fsrc = open(args.source, 'r')
         ftrans = open(args.trans, 'w')
+        csv_trans = csv.writer(ftrans, quoting=csv.QUOTE_MINIMAL)
 
         start_time = time.time()
 
@@ -443,11 +452,14 @@ def main():
                 print "Parsed Input:", parsed_in
             trans, costs, _ = sample(lm_model, seq, n_samples, sampler=sampler,
                     beam_search=beam_search, ignore_unk=args.ignore_unk, normalize=args.normalize)
-            best = numpy.argmin(costs)
-            print >>ftrans, trans[best]
-            if args.verbose:
-                print "Translation:", trans[best]
-            total_cost += costs[best]
+            
+            if len(trans):
+                best = numpy.argmin(costs)
+                #print >>ftrans, trans[best]
+                csv_trans.writerow([seqin, trans[best], costs[best]])
+                if args.verbose:
+                    print "Translation:", trans[best]
+                total_cost += costs[best]
             if (i + 1)  % 100 == 0:
                 ftrans.flush()
                 logger.debug("Current speed is {} per sentence".

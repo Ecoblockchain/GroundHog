@@ -1,0 +1,1 @@
+sudo THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,nvcc.fastmath=True,lib.cnmem=0.5 python sample.py --beam-search --beam-size 149 --state $1$2/model_state.pkl $1$2/model_model.npz --source $1.txt --trans $1_$2.csv

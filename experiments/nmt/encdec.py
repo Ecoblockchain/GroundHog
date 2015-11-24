@@ -299,7 +299,7 @@ class RecurrentLayerWithSearch(Layer):
                 name="D_%s"%self.name)
         self.params.append(self.D_pe)
         self.params_grad_scale = [self.grad_scale for x in self.params]
-       
+
     def set_decoding_layers(self, c_inputer, c_reseter, c_updater):
         self.c_inputer = c_inputer
         self.c_reseter = c_reseter
@@ -473,10 +473,10 @@ class RecurrentLayerWithSearch(Layer):
 
         p_from_c =  utils.dot(c, self.A_cp).reshape(
                 (c.shape[0], c.shape[1], self.n_hids))
-        
+
         if mask:
             sequences = [state_below, mask, updater_below, reseter_below]
-            non_sequences = [c, c_mask, p_from_c] 
+            non_sequences = [c, c_mask, p_from_c]
             #              seqs    | out |  non_seqs
             fn = lambda x, m, g, r,   h,   c1, cm, pc : self.step_fprop(x, h, mask=m,
                     gater_below=g, reseter_below=r,
@@ -774,7 +774,7 @@ class Encoder(EncoderDecoderBase):
 
             # FIXME above statement is not correct, should be:
             # each input, reset and update gate,
-            # except for those at time 0, 
+            # except for those at time 0,
             # takes previous hidden layer as input
 
             # All the shapes: (n_words, dim)
@@ -897,7 +897,7 @@ class Decoder(EncoderDecoderBase):
                 learn_bias=False))
 
         if self.state['decoding_inputs']:
-            # use context from encoder 
+            # use context from encoder
             for level in range(self.num_levels):
                 # Input contributions
                 self.decode_inputers[level] = MultiLayer(
@@ -1032,7 +1032,7 @@ class Decoder(EncoderDecoderBase):
                 assert T == 1
 
         # For log-likelihood evaluation the representation is replicated for conveniency
-        # not when backward RNN is used 
+        # not when backward RNN is used
         # Shape if mode == evaluation
         #   (max_seq_len, batch_size, dim)
         # Shape if mode != evaluation
@@ -1123,7 +1123,7 @@ class Decoder(EncoderDecoderBase):
             if self.state['search']:
                 if self.compute_alignment:
                     #This implicitly wraps each element of result.out with a Layer to keep track of the parameters.
-                    #It is equivalent to h=result[0], ctx=result[1] etc. 
+                    #It is equivalent to h=result[0], ctx=result[1] etc.
                     h, ctx, alignment = result
                     if mode == Decoder.EVALUATION:
                         alignment = alignment.out
@@ -1488,7 +1488,7 @@ class RNNEncoderDecoder(object):
                     inputs=[self.c, self.step_num, self.gen_y] + self.current_states,
                     outputs=[self.decoder.build_next_probs_predictor(
                         self.c, self.step_num, self.gen_y, self.current_states)],
-                    name="next_probs_fn")
+                    name="next_probs_fn", on_unused_input='warn')
         return self.next_probs_fn
 
     def create_next_states_computer(self):
@@ -1497,7 +1497,7 @@ class RNNEncoderDecoder(object):
                     inputs=[self.c, self.step_num, self.gen_y] + self.current_states,
                     outputs=self.decoder.build_next_states_computer(
                         self.c, self.step_num, self.gen_y, self.current_states),
-                    name="next_states_fn")
+                    name="next_states_fn", on_unused_input='warn')
         return self.next_states_fn
 
 
@@ -1524,7 +1524,8 @@ def parse_input(state, word2idx, line, raise_unk=False, idx2word=None, unk_sym=-
         unk_sym = state['unk_sym_source']
     if null_sym < 0:
         null_sym = state['null_sym_source']
-    seqin = line.split()
+    #seqin = unicode(line).split()
+    seqin = list(unicode(line))
     seqlen = len(seqin)
     seq = numpy.zeros(seqlen+1, dtype='int64')
     for idx,sx in enumerate(seqin):

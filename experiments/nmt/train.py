@@ -9,6 +9,10 @@ import pprint
 
 import numpy
 
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 import groundhog
 
 from groundhog.trainer.SGD_adadelta import SGD as SGD_adadelta
@@ -33,6 +37,7 @@ class RandomSamplePrinter(object):
             for i, word in enumerate(words):
                 if words[i] == '<eol>':
                     return words[:i + 1]
+            return words
             raise Exception("No end-of-line found")
 
         sample_idx = 0
