@@ -10,16 +10,15 @@ import sys
 import numpy
 
 import experiments.nmt
-from experiments.nmt import\
-    RNNEncoderDecoder,\
-    prototype_state,\
+from experiments.nmt import \
+    RNNEncoderDecoder, \
+    prototype_state, \
     parse_input
 
 from experiments.nmt.numpy_compat import argpartition
 
 
 class ScoreMaker(object):
-    
     def __init__(self, enc_dec):
         self.enc_dec = enc_dec
         state = self.enc_dec.state
@@ -36,7 +35,6 @@ class ScoreMaker(object):
               comp_repr, comp_init_state, comp_next_prob, comp_next_state):
         pass
 
-    
 
 def indices_to_words(i2w, seq):
     sen = []
@@ -49,7 +47,7 @@ def indices_to_words(i2w, seq):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-            "Sample translations from a translation model")
+        "Sample translations from a translation model")
     parser.add_argument("--state", required=True, help="State to use")
     parser.add_argument("--source", help="File of source sentences")
     parser.add_argument("--target", help="File of target sentences")
@@ -71,27 +69,27 @@ def main():
     lm_model = enc_dec.create_lm_model()
     lm_model.load(args.model_path)
 
-    scoreMaker = ScoreMaker(enc_dec)
+    ScoreMaker = ScoreMaker(enc_dec)
     ScoreMaker.compile()
 
-    indx_word_src = cPickle.load(open(state['word_indx'],'rb'))
-    indx_word_trg = cPickle.load(open(state['word_indx_trgt'],'rb'))
+    indx_word_src = cPickle.load(open(state['word_indx'], 'rb'))
+    indx_word_trg = cPickle.load(open(state['word_indx_trgt'], 'rb'))
 
-    idict_src = cPickle.load(open(state['indx_word'],'r'))
-    idict_trg = cPickle.load(open(state['indx_word_target'],'r'))
+    idict_src = cPickle.load(open(state['indx_word'], 'r'))
+    idict_trg = cPickle.load(open(state['indx_word_target'], 'r'))
 
     fsrc = open(args.source, 'r')
     ftrg = open(args.target, 'r')
     for srcline, trgline in zip(fsrc, ftrg):
         src_seqin = srcline.strip()
         trg_seqin = trgline.strip()
-        src_seq, src_parsed_in = parse_input(state, 
-                                             indx_word_src, 
-                                             src_seqin, 
+        src_seq, src_parsed_in = parse_input(state,
+                                             indx_word_src,
+                                             src_seqin,
                                              idx2word=idict_src)
-        trg_seq, trg_parsed_in = parse_input(state, 
-                                             indx_word_trg, 
-                                             trg_seqin, 
+        trg_seq, trg_parsed_in = parse_input(state,
+                                             indx_word_trg,
+                                             trg_seqin,
                                              idx2word=idict_trg)
         print "Parsed Input:", src_parsed_in
 

@@ -4,6 +4,8 @@ import numpy
 import operator
 import pprint
 
+from nltk import trigrams
+
 import theano
 import theano.tensor as TT
 from theano.ifelse import ifelse
@@ -1531,8 +1533,8 @@ def parse_input(state, word2idx, line, raise_unk=False, idx2word=None, unk_sym=-
         unk_sym = state['unk_sym_source']
     if null_sym < 0:
         null_sym = state['null_sym_source']
-    # seqin = unicode(line).split()
-    seqin = list(unicode(line))
+
+    seqin = [''.join(i) for i in trigrams('\0\0' + line.strip().decode('utf-8') + '\0\0')]
     seqlen = len(seqin)
     seq = numpy.zeros(seqlen + 1, dtype='int64')
     for idx, sx in enumerate(seqin):

@@ -63,7 +63,7 @@ def parse_args():
     parser.add_argument("--proto", default="prototype_state",
                         help="Prototype state to use for state")
     parser.add_argument("--skip-init", action="store_true",
-                        help="Skip parameter initilization")
+                        help="Skip parameter initialization")
     parser.add_argument("changes", nargs="*", help="Changes to state", default="")
     return parser.parse_args()
 
