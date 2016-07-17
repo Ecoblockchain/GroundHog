@@ -54,7 +54,7 @@ class BeamSearch(object):
 
         num_levels = len(states)
 
-        fin_trank = []
+        fin_trans = []
         fin_costs = []
 
         trans = [[]]

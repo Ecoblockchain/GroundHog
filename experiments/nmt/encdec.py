@@ -13,6 +13,11 @@ from groundhog.datasets import PytablesBitextIterator
 from groundhog.layers import \
     Layer, \
     MultiLayer, \
+    SoftmaxLayer, \
+    HierarchicalSoftmaxLayer, \
+    LSTMLayer, \
+    RecurrentLayer, \
+    RecursiveConvolutionalLayer, \
     UnaryOp, \
     Shift, \
     LastState, \
