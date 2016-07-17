@@ -271,7 +271,6 @@ def prototype_encdec_state():
     state['word_indx'] = datadir + source + '.vocab.pkl'
     state['word_indx_trgt'] = datadir + target + '.vocab.pkl'
 
-
     state['null_sym_source'] = 30000
     state['null_sym_target'] = 30000
     state['n_sym_source'] = state['null_sym_source'] + 1

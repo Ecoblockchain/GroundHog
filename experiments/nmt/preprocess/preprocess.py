@@ -10,7 +10,6 @@ import os
 from collections import Counter
 from numpy.lib.stride_tricks import as_strided
 
-from nltk import trigrams
 import tables
 
 import sys
@@ -132,7 +131,7 @@ def create_dictionary():
                     line = line.lower()
                 words = line.strip().split(' ')
                 if args.char:
-                    words = [''.join(i) for i in trigrams('\0\0' + line.strip().decode('utf-8') + '\0\0')]
+                    words = line.strip().decode('utf-8').split()
                 counter.update(words)
                 global_counter.update(words)
                 sentence_count += 1

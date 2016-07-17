@@ -4,8 +4,6 @@ import numpy
 import operator
 import pprint
 
-from nltk import trigrams
-
 import theano
 import theano.tensor as TT
 from theano.ifelse import ifelse
@@ -1534,14 +1532,12 @@ def parse_input(state, word2idx, line, raise_unk=False, idx2word=None, unk_sym=-
     if null_sym < 0:
         null_sym = state['null_sym_source']
 
-    seqin = [''.join(i) for i in trigrams('\0\0' + line.strip().decode('utf-8') + '\0\0')]
+    seqin = line.strip().decode('utf-8').split()
     seqlen = len(seqin)
     seq = numpy.zeros(seqlen + 1, dtype='int64')
     for idx, sx in enumerate(seqin):
         seq[idx] = word2idx.get(sx, unk_sym)
         if seq[idx] >= state['n_sym_source']:
-            seq[idx] = unk_sym
-
         if seq[idx] == unk_sym:
             raise Exception("Unknown word {}".format(sx))
 
