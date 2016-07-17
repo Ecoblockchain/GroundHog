@@ -13,6 +13,9 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 from groundhog.mainLoop import MainLoop
+from groundhog.trainer.SGD_adadelta import SGD as SGD_adadelta
+from groundhog.trainer.SGD import SGD as SGD
+from groundhog.trainer.SGD_momentum import SGD as SGD_momentum
 from experiments.nmt import \
     RNNEncoderDecoder, get_batch_iterator
 import experiments.nmt
