@@ -1538,6 +1538,7 @@ def parse_input(state, word2idx, line, raise_unk=False, idx2word=None, unk_sym=-
     for idx, sx in enumerate(seqin):
         seq[idx] = word2idx.get(sx, unk_sym)
         if seq[idx] >= state['n_sym_source']:
+            seq[idx] = unk_sym
         if seq[idx] == unk_sym:
             raise Exception("Unknown word {}".format(sx))
 
