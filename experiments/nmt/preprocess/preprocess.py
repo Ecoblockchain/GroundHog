@@ -10,6 +10,7 @@ import os
 from collections import Counter
 from numpy.lib.stride_tricks import as_strided
 
+from nltk import trigrams
 import tables
 
 parser = argparse.ArgumentParser(
@@ -126,7 +127,7 @@ def create_dictionary():
                     line = line.lower()
                 words = None
                 if args.char:
-                    words = list(line.strip().decode('utf-8'))
+                    words = [''.join(i) for i in trigrams('\0\0' + line.strip().decode('utf-8') + '\0\0')]
                 else:
                     words = line.strip().split(' ')
                 counter.update(words)
