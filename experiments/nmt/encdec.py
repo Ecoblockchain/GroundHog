@@ -24,7 +24,7 @@ from groundhog.layers import \
     DropOp, \
     Concatenate
 from groundhog.models import LM_Model
-from groundhog.utils import sample_weights_classic
+from groundhog.utils import sample_zeros, sample_weights_orth, init_bias, sample_weights_classic
 
 logger = logging.getLogger(__name__)
 
