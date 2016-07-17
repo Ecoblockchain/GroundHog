@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+
 f1 = open(sys.argv[1])
 f2 = open(sys.argv[2])
 res = 0

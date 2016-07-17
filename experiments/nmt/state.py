@@ -175,7 +175,7 @@ def prototype_state():
     state['minlr'] = 0
 
     # Batch size
-    state['bs']  = 64
+    state['bs'] = 64
     # We take this many minibatches, merge them,
     # sort the sentences according to their length and create
     # this many new batches with less padding.
@@ -203,7 +203,7 @@ def prototype_state():
     # Number of batches to process
     state['loopIters'] = 3000000
     # Maximum number of minutes to run
-    state['timeStop'] = 24*60*31
+    state['timeStop'] = 24 * 60 * 31
     # Error level to stop at
     state['minerr'] = -1
 
@@ -227,6 +227,7 @@ def prototype_state():
 
     return state
 
+
 def prototype_phrase_state():
     """This prototype is the configuration used in the paper
     'Learning Phrase Representations using RNN Encoder-Decoder
@@ -247,6 +248,7 @@ def prototype_phrase_state():
     state['n_sym_target'] = state['null_sym_target'] + 1
 
     return state
+
 
 def prototype_encdec_state():
     """This prototype is the configuration used to train the RNNenc-30 model from the paper
@@ -276,7 +278,7 @@ def prototype_encdec_state():
     state['n_sym_target'] = state['null_sym_target'] + 1
 
     state['seqlen'] = 30
-    state['bs']  = 80
+    state['bs'] = 80
 
     state['dim'] = 1000
     state['rank_n_approx'] = 620
@@ -284,6 +286,7 @@ def prototype_encdec_state():
     state['prefix'] = 'encdec_'
 
     return state
+
 
 def prototype_search_state():
     """This prototype is the configuration used to train the RNNsearch-50 model from the paper
@@ -301,6 +304,7 @@ def prototype_search_state():
     state['prefix'] = 'search_'
 
     return state
+
 
 def prototype_phrase_lstm_state():
     state = prototype_phrase_state()

@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 import argparse
-import cPickle
-import gzip
-
+import numpy
 import sys
 
 import tables
-import numpy
 
 parser = argparse.ArgumentParser()
 parser.add_argument("source_input",
@@ -23,9 +20,11 @@ parser.add_argument("target_output",
                     help="The target output HDF5 file")
 args = parser.parse_args()
 
+
 class Index(tables.IsDescription):
     pos = tables.UInt32Col()
     length = tables.UInt32Col()
+
 
 infiles = [args.source_input, args.target_input]
 outfiles = [args.source_output, args.target_output]
@@ -42,7 +41,7 @@ for i, f in enumerate(infiles):
 for i, f in enumerate(outfiles):
     outfiles[i] = tables.open_file(f.name, f.mode)
     vlarrays_out.append(outfiles[i].createEArray(outfiles[i].root, 'phrases',
-            tables.Int32Atom(),shape=(0,)))
+                                                 tables.Int32Atom(), shape=(0,)))
     indices_out.append(outfiles[i].createTable("/", 'indices', Index, "a table of indices and lengths"))
 
 data_len = indices_in[0].shape[0]
@@ -60,13 +59,13 @@ for ii in idxs:
     for fi in [0, 1]:
         pos = indices_in[fi][ii]['pos']
         length = indices_in[fi][ii]['length']
-        vlarrays_out[fi].append(vlarrays_in[fi][pos:(pos+length)])
+        vlarrays_out[fi].append(vlarrays_in[fi][pos:(pos + length)])
         ind = indices_out[fi].row
         ind['pos'] = counts[fi]
         ind['length'] = length
         ind.append()
         counts[fi] += length
-    count +=1
+    count += 1
     if count % 100000 == 0:
         print count,
         [i.flush() for i in indices_out]

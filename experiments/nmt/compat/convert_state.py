@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import argparse
-import numpy
 import cPickle
+
 
 def separate_enc_dec_rec_layers(state):
     state['enc_rec_layer'] = state['rec_layer']
@@ -17,13 +17,15 @@ def separate_enc_dec_rec_layers(state):
     state['dec_rec_gater'] = state['rec_gater']
     state['dec_rec_reseter'] = state['rec_reseter']
 
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--conv-fn", help="Conversion function")
     parser.add_argument("--changes", help="Changes to the state")
     parser.add_argument("src", help="State to convert")
-    parser.add_argument("dst",  nargs="?", help="Destination to save")
+    parser.add_argument("dst", nargs="?", help="Destination to save")
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
@@ -40,6 +42,6 @@ def main():
     with open(args.dst, 'w') as dst:
         cPickle.dump(state, dst)
 
+
 if __name__ == "__main__":
     main()
-

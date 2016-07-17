@@ -1,5 +1,6 @@
-import cPickle as pkl
 import argparse
+import cPickle as pkl
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -18,6 +19,7 @@ def main():
             ivocab[idx] = k
         with open(args.output.name, args.output.mode) as fout:
             pkl.dump(ivocab, fout)
+
 
 if __name__ == '__main__':
     main()

@@ -18,17 +18,19 @@ import theano.tensor as TT
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 from groundhog import utils
-from groundhog.utils import sample_weights, sample_weights_classic,\
+from groundhog.utils import sample_weights, sample_weights_classic, \
     init_bias, constant_shape, sample_zeros
 
 from basic import Layer
 
 logger = logging.getLogger(__name__)
 
+
 class CostLayer(Layer):
     """
     Base class for all cost layers
     """
+
     def __init__(self, rng,
                  n_in,
                  n_out,
@@ -173,11 +175,11 @@ class CostLayer(Layer):
             self.params += [self.W_em1, self.W_em2, self.b_em]
 
             if self.weight_noise:
-                self.nW_em1 = theano.shared(W_em1*0.,
+                self.nW_em1 = theano.shared(W_em1 * 0.,
                                             name='noise_W1_%s' % self.name)
-                self.nW_em2 = theano.shared(W_em*0.,
+                self.nW_em2 = theano.shared(W_em * 0.,
                                             name='noise_W2_%s' % self.name)
-                self.nb_em = theano.shared(b_em*0.,
+                self.nb_em = theano.shared(b_em * 0.,
                                            name='noise_b_%s' % self.name)
                 self.noise_params = [self.nW_em1, self.nW_em2, self.nb_em]
                 self.noise_params_shape_fn = [
@@ -198,7 +200,7 @@ class CostLayer(Layer):
 
             self.params += [self.W_em, self.b_em]
             if self.weight_noise:
-                self.nW_em = theano.shared(W_em*0.,
+                self.nW_em = theano.shared(W_em * 0.,
                                            name='noise_W_%s' % self.name)
                 self.nb_em = theano.shared(
                     numpy.zeros((self.n_out,), dtype=theano.config.floatX),
@@ -212,16 +214,16 @@ class CostLayer(Layer):
         if self.additional_inputs:
             for pos, size in enumerate(self.additional_inputs):
                 W_add = self.init_fn(size,
-                                    self.n_out,
-                                    self.sparsity,
-                                    self.scale,
-                                    self.rng)
+                                     self.n_out,
+                                     self.sparsity,
+                                     self.scale,
+                                     self.rng)
                 self.additional_weights += [theano.shared(W_add,
-                                  name='W_add%d_%s'%(pos, self.name))]
+                                                          name='W_add%d_%s' % (pos, self.name))]
                 if self.weight_noise:
                     self.noise_additional_weights += [
-                        theano.shared(W_add*0.,
-                                      name='noise_W_add%d_%s'%(pos, self.name))]
+                        theano.shared(W_add * 0.,
+                                      name='noise_W_add%d_%s' % (pos, self.name))]
         self.params = self.params + self.additional_weights
         self.noise_params += self.noise_additional_weights
         self.noise_params_shape_fn += [
@@ -430,31 +432,31 @@ class LinearLayer(CostLayer):
         """
         if self.rank_n_approx:
             W_em1 = self.init_fn(self.nin,
-                                         self.rank_n_approx,
-                                         self.sparsity,
-                                         self.scale,
-                                         self.rng)
+                                 self.rank_n_approx,
+                                 self.sparsity,
+                                 self.scale,
+                                 self.rng)
             W_em2 = self.init_fn(self.rank_n_approx,
-                                         self.nout,
-                                         self.sparsity,
-                                         self.scale,
-                                         self.rng)
+                                 self.nout,
+                                 self.sparsity,
+                                 self.scale,
+                                 self.rng)
             self.W_em1 = theano.shared(W_em1,
-                                       name='W1_%s'%self.name)
+                                       name='W1_%s' % self.name)
             self.W_em2 = theano.shared(W_em2,
-                                       name='W2_%s'%self.name)
+                                       name='W2_%s' % self.name)
             self.b_em = theano.shared(
                 numpy.zeros((self.nout,), dtype=theano.config.floatX),
-                name='b_%s'%self.name)
+                name='b_%s' % self.name)
             self.params += [self.W_em1, self.W_em2, self.b_em]
-            self.myparams = []#[self.W_em1, self.W_em2, self.b_em]
+            self.myparams = []  # [self.W_em1, self.W_em2, self.b_em]
             if self.weight_noise:
-                self.nW_em1 = theano.shared(W_em1*0.,
-                                            name='noise_W1_%s'%self.name)
-                self.nW_em2 = theano.shared(W_em*0.,
-                                            name='noise_W2_%s'%self.name)
-                self.nb_em = theano.shared(b_em*0.,
-                                           name='noise_b_%s'%self.name)
+                self.nW_em1 = theano.shared(W_em1 * 0.,
+                                            name='noise_W1_%s' % self.name)
+                self.nW_em2 = theano.shared(W_em * 0.,
+                                            name='noise_W2_%s' % self.name)
+                self.nb_em = theano.shared(b_em * 0.,
+                                           name='noise_b_%s' % self.name)
                 self.noise_params = [self.nW_em1, self.nW_em2, self.nb_em]
                 self.noise_params_shape_fn = [
                     constant_shape(x.get_value().shape)
@@ -462,46 +464,46 @@ class LinearLayer(CostLayer):
 
         else:
             W_em = self.init_fn(self.nin,
-                                        self.nout,
-                                        self.sparsity,
-                                        self.scale,
-                                        self.rng)
+                                self.nout,
+                                self.sparsity,
+                                self.scale,
+                                self.rng)
             self.W_em = theano.shared(W_em,
-                                      name='W_%s'%self.name)
+                                      name='W_%s' % self.name)
             self.b_em = theano.shared(
                 numpy.zeros((self.nout,), dtype=theano.config.floatX),
-                name='b_%s'%self.name)
+                name='b_%s' % self.name)
             self.add_wghs = []
             self.n_add_wghs = []
             if self.additional_inputs:
                 for pos, sz in enumerate(self.additional_inputs):
                     W_add = self.init_fn(sz,
-                                        self.nout,
-                                        self.sparsity,
-                                        self.scale,
-                                        self.rng)
+                                         self.nout,
+                                         self.sparsity,
+                                         self.scale,
+                                         self.rng)
                     self.add_wghs += [theano.shared(W_add,
-                                      name='W_add%d_%s'%(pos, self.name))]
+                                                    name='W_add%d_%s' % (pos, self.name))]
                     if self.weight_noise:
-                        self.n_add_wghs += [theano.shared(W_add*0.,
-                                                      name='noise_W_add%d_%s'%(pos,
-                                                                               self.name))]
+                        self.n_add_wghs += [theano.shared(W_add * 0.,
+                                                          name='noise_W_add%d_%s' % (pos,
+                                                                                     self.name))]
 
             self.params += [self.W_em, self.b_em] + self.add_wghs
-            self.myparams = []#[self.W_em, self.b_em] + self.add_wghs
+            self.myparams = []  # [self.W_em, self.b_em] + self.add_wghs
             if self.weight_noise:
-                self.nW_em = theano.shared(W_em*0.,
-                                           name='noise_W_%s'%self.name)
+                self.nW_em = theano.shared(W_em * 0.,
+                                           name='noise_W_%s' % self.name)
                 self.nb_em = theano.shared(numpy.zeros((self.nout,),
                                                        dtype=theano.config.floatX),
-                                           name='noise_b_%s'%self.name)
+                                           name='noise_b_%s' % self.name)
                 self.noise_params = [self.nW_em, self.nb_em] + self.n_add_wghs
                 self.noise_params_shape_fn = [
                     constant_shape(x.get_value().shape)
                     for x in self.noise_params]
 
     def _check_dtype(self, matrix, inp):
-        if 'int' in inp.dtype and inp.ndim==2:
+        if 'int' in inp.dtype and inp.ndim == 2:
             return matrix[inp.flatten()]
         elif 'int' in inp.dtype:
             return matrix[inp]
@@ -509,21 +511,20 @@ class LinearLayer(CostLayer):
             shape0 = inp.shape[0]
             shape1 = inp.shape[1]
             shape2 = inp.shape[2]
-            return TT.dot(inp.reshape((shape0*shape1, shape2)), matrix)
+            return TT.dot(inp.reshape((shape0 * shape1, shape2)), matrix)
         else:
             return TT.dot(inp, matrix)
 
-
-    def fprop(self, state_below, temp = numpy.float32(1), use_noise=True,
-             additional_inputs = None):
+    def fprop(self, state_below, temp=numpy.float32(1), use_noise=True,
+              additional_inputs=None):
         """
         Constructs the computational graph of this layer.
         """
 
         if self.rank_n_approx:
             if use_noise and self.noise_params:
-                emb_val = self._check_dtype(self.W_em1+self.nW_em1,
-                                          state_below)
+                emb_val = self._check_dtype(self.W_em1 + self.nW_em1,
+                                            state_below)
                 emb_val = TT.dot(self.W_em2 + self.nW_em2, emb_val)
             else:
                 emb_val = self._check_dtype(self.W_em1, state_below)
@@ -539,17 +540,17 @@ class LinearLayer(CostLayer):
                 emb_val += self._check_dtype(wgs, st)
 
         if use_noise and self.noise_params:
-            emb_val = (emb_val + self.b_em+ self.nb_em)
+            emb_val = (emb_val + self.b_em + self.nb_em)
         else:
-            emb_val =  (emb_val + self.b_em)
+            emb_val = (emb_val + self.b_em)
         self.out = emb_val
         self.state_below = state_below
         self.model_output = emb_val
         return emb_val
 
-    def get_cost(self, state_below, target=None, mask = None, temp=1,
-                 reg = None, scale=None, sum_over_time=True, use_noise=True,
-                additional_inputs=None):
+    def get_cost(self, state_below, target=None, mask=None, temp=1,
+                 reg=None, scale=None, sum_over_time=True, use_noise=True,
+                 additional_inputs=None):
         """
         This function computes the cost of this layer.
 
@@ -559,34 +560,34 @@ class LinearLayer(CostLayer):
             layer
         :return: mean cross entropy
         """
-        class_probs = self.fprop(state_below, temp = temp,
+        class_probs = self.fprop(state_below, temp=temp,
                                  use_noise=use_noise,
-                                additional_inputs=additional_inputs)
+                                 additional_inputs=additional_inputs)
         pvals = class_probs
         assert target, 'Computing the cost requires a target'
         if target.ndim == 3:
-            target = target.reshape((target.shape[0]*target.shape[1],
-                                    target.shape[2]))
+            target = target.reshape((target.shape[0] * target.shape[1],
+                                     target.shape[2]))
         assert 'float' in target.dtype
-        cost = (class_probs - target)**2
+        cost = (class_probs - target) ** 2
         if mask:
             mask = mask.flatten()
             cost = cost * TT.cast(mask, theano.config.floatX)
         if sum_over_time is None:
             sum_over_time = self.sum_over_time
         if sum_over_time:
-            if state_below.ndim ==3:
+            if state_below.ndim == 3:
                 sh0 = TT.cast(state_below.shape[0],
-                             theano.config.floatX)
+                              theano.config.floatX)
                 sh1 = TT.cast(state_below.shape[1],
-                             theano.config.floatX)
-                self.cost = cost.sum()/sh1
+                              theano.config.floatX)
+                self.cost = cost.sum() / sh1
             else:
-                self.cost =cost.sum()
+                self.cost = cost.sum()
         else:
             self.cost = cost.mean()
         if scale:
-            self.cost = self.cost*scale
+            self.cost = self.cost * scale
         if reg:
             self.cost = self.cost + reg
         self.out = self.cost
@@ -594,10 +595,9 @@ class LinearLayer(CostLayer):
         self.cost_scale = scale
         return self.cost
 
-
-    def get_grads(self, state_below, target, mask = None, reg = None,
+    def get_grads(self, state_below, target, mask=None, reg=None,
                   scale=None, sum_over_time=True, use_noise=True,
-                 additional_inputs=None):
+                  additional_inputs=None):
         """
         This function implements both the forward and backwards pass of this
         layer. The reason we do this in a single function is because for the
@@ -620,8 +620,8 @@ class LinearLayer(CostLayer):
         """
         cost = self.get_cost(state_below,
                              target,
-                             mask = mask,
-                             reg = reg,
+                             mask=mask,
+                             reg=reg,
                              scale=scale,
                              sum_over_time=sum_over_time,
                              use_noise=use_noise,
@@ -636,18 +636,20 @@ class LinearLayer(CostLayer):
                                     replace=replace)
                 gparams = rval[:len(gparams)]
                 prop_expr = rval[len(gparams):]
-                self.properties += [(x[0], y) for x,y in zip(properties,
-                                                             prop_expr)]
+                self.properties += [(x[0], y) for x, y in zip(properties,
+                                                              prop_expr)]
                 for gp, p in zip(gparams, params):
                     grads[self.params.index(p)] += gp
 
         self.cost = cost
         self.grads = grads
+
         def Gvs_fn(*args):
             w = (1 - self.model_output) * self.model_output * state_below.shape[1]
             Gvs = TT.Lop(self.model_output, self.params,
-                         TT.Rop(self.model_output, self.params, args)/w)
+                         TT.Rop(self.model_output, self.params, args) / w)
             return Gvs
+
         self.Gvs = Gvs_fn
         return cost, grads
 
@@ -672,8 +674,8 @@ class SigmoidLayer(CostLayer):
             model.del_noise()
         [values, probs] = model.sample_fn(length, temp, *inps)
         # Assumes values matrix
-        #print 'Generated sample is:'
-        #print
+        # print 'Generated sample is:'
+        # print
         if values.ndim > 1:
             for d in xrange(2):
                 print '%d-th sentence' % d
@@ -766,7 +768,7 @@ class SigmoidLayer(CostLayer):
         if self.rank_n_approx:
             if use_noise and self.noise_params:
                 emb_val = self.rank_n_activ(utils.dot(state_below,
-                                                      self.W_em1+self.nW_em1))
+                                                      self.W_em1 + self.nW_em1))
                 emb_val = TT.dot(self.W_em2 + self.nW_em2, emb_val)
             else:
                 emb_val = self.rank_n_activ(utils.dot(state_below, self.W_em1))
@@ -780,8 +782,8 @@ class SigmoidLayer(CostLayer):
         if additional_inputs:
             if use_noise and self.noise_params:
                 for inp, weight, noise_weight in zip(
-                    additional_inputs, self.additional_weights,
-                    self.noise_additional_weights):
+                        additional_inputs, self.additional_weights,
+                        self.noise_additional_weights):
                     emb_val += utils.dot(inp, (noise_weight + weight))
             else:
                 for inp, weight in zip(additional_inputs, self.additional_weights):
@@ -841,12 +843,12 @@ class SigmoidLayer(CostLayer):
         pvals = class_probs
         assert target, 'Computing the cost requires a target'
         if target.ndim == 3:
-            target = target.reshape((target.shape[0]*target.shape[1],
-                                    target.shape[2]))
+            target = target.reshape((target.shape[0] * target.shape[1],
+                                     target.shape[2]))
         assert 'float' in target.dtype
         # Do we need the safety net of 1e-12  ?
-        cost = -TT.log(TT.maximum(1e-12, class_probs)) * target -\
-            TT.log(TT.maximum(1e-12, 1 - class_probs)) * (1 - target)
+        cost = -TT.log(TT.maximum(1e-12, class_probs)) * target - \
+               TT.log(TT.maximum(1e-12, 1 - class_probs)) * (1 - target)
         if cost.ndim > 1:
             cost = cost.sum(1)
         if mask:
@@ -860,13 +862,13 @@ class SigmoidLayer(CostLayer):
                               theano.config.floatX)
                 sh1 = TT.cast(state_below.shape[1],
                               theano.config.floatX)
-                self.cost = cost.sum()/sh1
+                self.cost = cost.sum() / sh1
             else:
                 self.cost = cost.sum()
         else:
             self.cost = cost.mean()
         if scale:
-            self.cost = self.cost*scale
+            self.cost = self.cost * scale
         if reg:
             self.cost = self.cost + reg
         self.out = self.cost
@@ -893,8 +895,8 @@ class SoftmaxLayer(CostLayer):
         if model.del_noise:
             model.del_noise()
         [values, probs] = model.sample_fn(length, temp, *inps)
-        #print 'Generated sample is:'
-        #print
+        # print 'Generated sample is:'
+        # print
         if values.ndim > 1:
             for d in xrange(2):
                 print '%d-th sentence' % d
@@ -991,7 +993,7 @@ class SoftmaxLayer(CostLayer):
         if self.rank_n_approx:
             if self.weight_noise and use_noise and self.noise_params:
                 emb_val = self.rank_n_activ(utils.dot(state_below,
-                                                      self.W_em1+self.nW_em1))
+                                                      self.W_em1 + self.nW_em1))
                 nW_em = self.nW_em2
             else:
                 emb_val = self.rank_n_activ(utils.dot(state_below, self.W_em1))
@@ -1011,14 +1013,14 @@ class SoftmaxLayer(CostLayer):
             if additional_inputs:
                 if use_noise and self.noise_params:
                     for inp, weight, noise_weight in zip(
-                        additional_inputs, self.additional_weights,
-                        self.noise_additional_weights):
+                            additional_inputs, self.additional_weights,
+                            self.noise_additional_weights):
                         emb_val += utils.dot(inp, (noise_weight + weight))
                 else:
                     for inp, weight in zip(additional_inputs, self.additional_weights):
                         emb_val += utils.dot(inp, weight)
             if self.weight_noise and use_noise and self.noise_params and \
-               not no_noise_bias:
+                    not no_noise_bias:
                 emb_val = temp * (emb_val + self.b_em + self.nb_em)
             else:
                 emb_val = temp * (emb_val + self.b_em)
@@ -1028,7 +1030,7 @@ class SoftmaxLayer(CostLayer):
                 nW_em = nW_em[:, target]
                 W_em += nW_em
             if emb_val.ndim == 3:
-                emb_val = emb_val.reshape([emb_val.shape[0]*emb_val.shape[1], emb_val.shape[2]])
+                emb_val = emb_val.reshape([emb_val.shape[0] * emb_val.shape[1], emb_val.shape[2]])
             emb_val = (W_em.T * emb_val).sum(1) + self.b_em[target]
             if self.weight_noise and use_noise:
                 emb_val += self.nb_em[target]
@@ -1089,7 +1091,7 @@ class SoftmaxLayer(CostLayer):
             assert target.ndim == 1, 'make sure target is a vector of ints'
             assert 'int' in target.dtype
 
-            pos = TT.arange(shape0)*shape1
+            pos = TT.arange(shape0) * shape1
             new_targ = target + pos
             return class_probs.flatten()[new_targ]
 
@@ -1112,12 +1114,12 @@ class SoftmaxLayer(CostLayer):
             # negative samples: a single uniform random sample per training sample
             nsamples = TT.cast(self.trng.uniform(class_probs.shape[0].reshape([1])) * self.n_out, 'int64')
             neg_probs = self.fprop(state_below,
-                                     temp=temp,
-                                     use_noise=use_noise,
-                                     additional_inputs=additional_inputs,
-                                     no_noise_bias=no_noise_bias,
-                                     target=nsamples.flatten(),
-                                     full_softmax=False)
+                                   temp=temp,
+                                   use_noise=use_noise,
+                                   additional_inputs=additional_inputs,
+                                   no_noise_bias=no_noise_bias,
+                                   target=nsamples.flatten(),
+                                   full_softmax=False)
 
             cost_target = class_probs
             cost_nsamples = 1. - neg_probs
@@ -1139,8 +1141,8 @@ class SoftmaxLayer(CostLayer):
         if mask:
             cost = cost * TT.cast(mask.flatten(), theano.config.floatX)
         self.cost_per_sample = (cost.reshape(target_shape).sum(axis=0)
-                if target_ndim > 1
-                else cost)
+                                if target_ndim > 1
+                                else cost)
 
         if sum_over_time is None:
             sum_over_time = self.sum_over_time
@@ -1154,12 +1156,13 @@ class SoftmaxLayer(CostLayer):
         else:
             self.cost = cost.mean()
         if scale:
-            self.cost = self.cost*scale
+            self.cost = self.cost * scale
         if reg:
             self.cost = self.cost + reg
         self.mask = mask
         self.cost_scale = scale
         return self.cost
+
 
 class HierarchicalSoftmaxLayer(SoftmaxLayer):
     """
@@ -1189,9 +1192,9 @@ class HierarchicalSoftmaxLayer(SoftmaxLayer):
 
         self.grad_scale = grad_scale
         super(CostLayer, self).__init__(n_in, n_out, rng, name)
-        self.n_words_class = numpy.ceil(numpy.sqrt(self.n_out)).astype('int64') # oSize
-        self.n_class = numpy.ceil(self.n_out/float(self.n_words_class)).astype('int64') # oBlocks
-        logger.debug("n_words_class = %d, n_class = %d"%(self.n_words_class, self.n_class))
+        self.n_words_class = numpy.ceil(numpy.sqrt(self.n_out)).astype('int64')  # oSize
+        self.n_class = numpy.ceil(self.n_out / float(self.n_words_class)).astype('int64')  # oBlocks
+        logger.debug("n_words_class = %d, n_class = %d" % (self.n_words_class, self.n_class))
         self.trng = RandomStreams(self.rng.randint(int(1e6)))
         if isinstance(bias_fn, str):
             self.bias_fn = eval(bias_fn)
@@ -1225,12 +1228,12 @@ class HierarchicalSoftmaxLayer(SoftmaxLayer):
             name='b_%s' % self.name)
 
         U_em = theano.shared(((self.rng.rand(self.iBlocks, self.n_class,
-            self.n_in, self.n_words_class)-0.5)/(self.n_words_class*self.n_in)
-            ).astype(theano.config.floatX), name='U_%s'%self.name)
+                                             self.n_in, self.n_words_class) - 0.5) / (self.n_words_class * self.n_in)
+                              ).astype(theano.config.floatX), name='U_%s' % self.name)
         self.U_em = U_em
         c_em = numpy.zeros((self.n_class, self.n_words_class), dtype='float32')
         n_words_last_class = self.n_out % self.n_words_class
-        #c_em[-1, n_words_last_class:] = -numpy.inf
+        # c_em[-1, n_words_last_class:] = -numpy.inf
         self.c_em = theano.shared(c_em, name='c_%s' % self.name)
 
         self.params = [self.W_em, self.b_em, self.U_em, self.c_em]
@@ -1267,18 +1270,18 @@ class HierarchicalSoftmaxLayer(SoftmaxLayer):
             def _compute_inclass(classid):
                 # compute the word probabilities
                 outputIdx = TT.alloc(classid, bs)[:, None]
-                word_val = utils.softmax(TT.dot(emb_val, U_em[0, classid, :, :])+c_em[classid,:])
-                word_val = word_val * class_val[:, classid][:,None]
+                word_val = utils.softmax(TT.dot(emb_val, U_em[0, classid, :, :]) + c_em[classid, :])
+                word_val = word_val * class_val[:, classid][:, None]
                 return word_val.T
 
             rval = theano.scan(_compute_inclass, class_vecs, None, name='compute_inclass')
-            all_word_val = rval[0].reshape([rval[0].shape[0]*rval[0].shape[1], rval[0].shape[2]]).T
-            all_word_val = all_word_val[:,:self.n_out]
+            all_word_val = rval[0].reshape([rval[0].shape[0] * rval[0].shape[1], rval[0].shape[2]]).T
+            all_word_val = all_word_val[:, :self.n_out]
             emb_val = all_word_val
         else:
             # compute only the probability of given targets
             if emb_val.ndim == 3:
-                emb_val = emb_val.reshape([emb_val.shape[0]*emb_val.shape[1], emb_val.shape[2]])
+                emb_val = emb_val.reshape([emb_val.shape[0] * emb_val.shape[1], emb_val.shape[2]])
 
             # extract class id's from target indices
             target = target.flatten()
@@ -1291,13 +1294,14 @@ class HierarchicalSoftmaxLayer(SoftmaxLayer):
 
             # compute the word probabilities
             word_val = utils.softmax(self.sparse_block_dot_SS(U_em,
-                emb_val[:, None, :], TT.zeros((bs, 1), dtype='int64'), c_em, outputIdx)[:, 0, :])
+                                                              emb_val[:, None, :], TT.zeros((bs, 1), dtype='int64'),
+                                                              c_em, outputIdx)[:, 0, :])
 
             class_val = class_val[TT.arange(bs), class_vec]
             word_val = word_val[TT.arange(bs), class_idx_vec]
             emb_val = class_val * word_val
 
-        #self.preactiv = emb_val
+        # self.preactiv = emb_val
         self.out = emb_val
         self.state_below = state_below
         self.model_output = emb_val
@@ -1325,7 +1329,7 @@ class HierarchicalSoftmaxLayer(SoftmaxLayer):
 
         if state_below.ndim == 3:
             shp = state_below.shape
-            state_below = state_below.reshape([shp[0]*shp[1], shp[2]])
+            state_below = state_below.reshape([shp[0] * shp[1], shp[2]])
 
         class_probs = self.fprop(state_below,
                                  temp=temp,
@@ -1343,8 +1347,8 @@ class HierarchicalSoftmaxLayer(SoftmaxLayer):
         if mask:
             cost = cost * TT.cast(mask.flatten(), theano.config.floatX)
         self.cost_per_sample = (cost.reshape(target_shape).sum(axis=0)
-                if target_ndim > 1
-                else cost)
+                                if target_ndim > 1
+                                else cost)
 
         if sum_over_time is None:
             sum_over_time = self.sum_over_time
@@ -1358,10 +1362,9 @@ class HierarchicalSoftmaxLayer(SoftmaxLayer):
         else:
             self.cost = cost.mean()
         if scale:
-            self.cost = self.cost*scale
+            self.cost = self.cost * scale
         if reg:
             self.cost = self.cost + reg
         self.mask = mask
         self.cost_scale = scale
         return self.cost
-

@@ -2,31 +2,28 @@
 
 import argparse
 import cPickle
-import traceback
-import logging
-import time
 import csv
-
+import logging
 import sys
+import time
+import traceback
+
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
-
-
 import numpy
 
-import experiments.nmt
-from experiments.nmt import\
-    RNNEncoderDecoder,\
-    prototype_state,\
+from experiments.nmt import \
+    RNNEncoderDecoder, \
+    prototype_state, \
     parse_input
 
 from experiments.nmt.numpy_compat import argpartition
 
 logger = logging.getLogger(__name__)
 
-class Timer(object):
 
+class Timer(object):
     def __init__(self):
         self.total = 0
 
@@ -36,8 +33,8 @@ class Timer(object):
     def finish(self):
         self.total += time.time() - self.start_time
 
-class BeamSearch(object):
 
+class BeamSearch(object):
     def __init__(self, enc_dec):
         self.enc_dec = enc_dec
         state = self.enc_dec.state
@@ -52,7 +49,7 @@ class BeamSearch(object):
 
     def search(self, seq, n_samples, ignore_unk=False, minlen=1):
         c = self.comp_repr(seq)[0]
-        states = map(lambda x : x[None, :], self.comp_init_states(c))
+        states = map(lambda x: x[None, :], self.comp_init_states(c))
         dim = states[0].shape[1]
 
         num_levels = len(states)
@@ -70,26 +67,26 @@ class BeamSearch(object):
             # Compute probabilities of the next words for
             # all the elements of the beam.
             beam_size = len(trans)
-            last_words = (numpy.array(map(lambda t : t[-1], trans))
-                    if k > 0
-                    else numpy.zeros(beam_size, dtype="int64"))
+            last_words = (numpy.array(map(lambda t: t[-1], trans))
+                          if k > 0
+                          else numpy.zeros(beam_size, dtype="int64"))
             log_probs = numpy.log(self.comp_next_probs(c, k, last_words, *states)[0])
 
             print last_words
 
             # Adjust log probs according to search restrictions
             if ignore_unk:
-                log_probs[:,self.unk_id] = -numpy.inf
+                log_probs[:, self.unk_id] = -numpy.inf
             # TODO: report me in the paper!!!
             if k < minlen:
-                log_probs[:,self.eos_id] = -numpy.inf
+                log_probs[:, self.eos_id] = -numpy.inf
 
             # Find the best options by calling argpartition of flatten array
             next_costs = numpy.array(costs)[:, None] - log_probs
             flat_next_costs = next_costs.flatten()
             best_costs_indices = argpartition(
-                    flat_next_costs.flatten(),
-                    n_samples)[:n_samples]
+                flat_next_costs.flatten(),
+                n_samples)[:n_samples]
 
             # Decypher flatten indices
             voc_size = log_probs.shape[1]
@@ -103,7 +100,7 @@ class BeamSearch(object):
             new_trans = [[]] * n_samples
             new_costs = numpy.zeros(n_samples)
             new_states = [numpy.zeros((n_samples, dim), dtype="float32") for level
-                    in range(num_levels)]
+                          in range(num_levels)]
             inputs = numpy.zeros(n_samples, dtype="int64")
             for i, (orig_idx, next_word, next_cost) in enumerate(
                     zip(trans_indices, word_indices, costs)):
@@ -127,10 +124,10 @@ class BeamSearch(object):
                     n_samples -= 1
                     fin_trans.append(new_trans[i])
                     fin_costs.append(new_costs[i])
-            # beam size is naturally reduced when multiple best 
-            # new trans came from same beam
-            states = map(lambda x : x[indices], new_states)
 
+            # beam size is naturally reduced when multiple best
+            # new trans came from same beam
+            states = map(lambda x: x[indices], new_states)
         # Dirty tricks to obtain any translation
         if not len(fin_trans):
             if ignore_unk:
@@ -156,7 +153,7 @@ class BeamSearch(object):
         # c.shape[0] = len(seq)
 
         # states is a dim_dimensional vector, output of initialization unit
-        states = map(lambda x : x[None, :], self.comp_init_states(c))
+        states = map(lambda x: x[None, :], self.comp_init_states(c))
         # dimension of hidden layer
         dim = states[0].shape[1]
 
@@ -178,12 +175,12 @@ class BeamSearch(object):
             # Compute probabilities of the next words for
             # all the elements of the beam.
             beam_size = len(trans)
-            last_words = (numpy.array(map(lambda t : t[-1], trans))
-                    if k > 0
-                    else numpy.zeros(beam_size, dtype="int64"))
+            last_words = (numpy.array(map(lambda t: t[-1], trans))
+                          if k > 0
+                          else numpy.zeros(beam_size, dtype="int64"))
             log_probs = numpy.log(self.comp_next_probs(c, k, last_words, *states)[0])
 
-            print str(k) + '\t' + '|', 
+            print str(k) + '\t' + '|',
             if k > 0 and k <= len(truth):
                 if truth[k - 1] < 30000:
                     print idict[truth[k - 1]] + '\t' + '|',
@@ -195,20 +192,19 @@ class BeamSearch(object):
             else:
                 print last_words
 
-
             # Adjust log probs according to search restrictions
             if ignore_unk:
-                log_probs[:,self.unk_id] = -numpy.inf
+                log_probs[:, self.unk_id] = -numpy.inf
             # TODO: report me in the paper!!!
             if k < minlen:
-                log_probs[:,self.eos_id] = -numpy.inf
+                log_probs[:, self.eos_id] = -numpy.inf
 
             # Find the best options by calling argpartition of flatten array
             next_costs = numpy.array(costs)[:, None] - log_probs
             flat_next_costs = next_costs.flatten()
             best_costs_indices = argpartition(
-                    flat_next_costs.flatten(),
-                    n_samples)[:n_samples]
+                flat_next_costs.flatten(),
+                n_samples)[:n_samples]
 
             # Decypher flatten indices
             voc_size = log_probs.shape[1]
@@ -222,7 +218,7 @@ class BeamSearch(object):
             new_trans = [[]] * (n_samples)
             new_costs = numpy.zeros(n_samples)
             new_states = [numpy.zeros((n_samples, dim), dtype="float32") for level
-                    in range(num_levels)]
+                          in range(num_levels)]
             inputs = numpy.zeros(n_samples, dtype="int64")
             for i, (orig_idx, next_word, next_cost) in enumerate(
                     zip(trans_indices, word_indices, costs)):
@@ -250,7 +246,7 @@ class BeamSearch(object):
 
             # beam size is naturally reduced when multiple best 
             # new trans came from same beam
-            states = map(lambda x : x[indices], new_states)
+            states = map(lambda x: x[indices], new_states)
 
         # Dirty tricks to obtain any translation
         if not len(fin_trans):
@@ -267,6 +263,7 @@ class BeamSearch(object):
         fin_costs = numpy.array(sorted(fin_costs))
         return fin_trans, fin_costs
 
+
 def indices_to_words(i2w, seq):
     sen = []
     for k in xrange(len(seq)):
@@ -276,15 +273,15 @@ def indices_to_words(i2w, seq):
             sen.append(i2w[seq[k]])
     return sen
 
-def sample(lm_model, seq, truth, n_samples,
-        sampler=None, beam_search=None,
-        ignore_unk=False, normalize=False,
-        alpha=1, verbose=False, idict=None):
 
+def sample(lm_model, seq, truth, n_samples,
+           sampler=None, beam_search=None,
+           ignore_unk=False, normalize=False,
+           alpha=1, verbose=False, idict=None):
     if truth is not None and beam_search:
         sentences = []
         trans, costs = beam_search.search_with_truth(seq, truth, n_samples,
-                ignore_unk=ignore_unk, minlen=len(seq) / 2, idict=idict)
+                                                     ignore_unk=ignore_unk, minlen=len(seq) / 2, idict=idict)
         if normalize:
             counts = [len(s) for s in trans]
             costs = [co / cn for co, cn in zip(costs, counts)]
@@ -296,9 +293,10 @@ def sample(lm_model, seq, truth, n_samples,
                 print "{}: {}".format(costs[i], sentences[i])
         return sentences, costs, trans
     elif beam_search:
+
         sentences = []
         trans, costs = beam_search.search(seq, n_samples,
-                ignore_unk=ignore_unk, minlen=len(seq) / 2)
+                                          ignore_unk=ignore_unk, minlen=len(seq) / 2)
         if normalize:
             counts = [len(s) for s in trans]
             costs = [co / cn for co, cn in zip(costs, counts)]
@@ -341,34 +339,36 @@ def sample(lm_model, seq, truth, n_samples,
 
 def parse_args():
     parser = argparse.ArgumentParser(
-            "Sample (of find with beam-serch) translations from a translation model")
+        "Sample (of find with beam-serch) translations from a translation model")
     parser.add_argument("--state",
-            required=True, help="State to use")
+                        required=True, help="State to use")
     parser.add_argument("--beam-search",
-            action="store_true", help="Beam size, turns on beam-search")
+                        action="store_true", help="Beam size, turns on beam-search")
     parser.add_argument("--beam-size",
-            type=int, help="Beam size")
+                        type=int, help="Beam size")
     parser.add_argument("--ignore-unk",
-            default=False, action="store_true",
-            help="Ignore unknown words")
+                        default=False, action="store_true",
+                        help="Ignore unknown words")
     parser.add_argument("--source",
-            help="File of source sentences")
+
+                        help="File of source sentences")
     parser.add_argument("--target",
-            help="File of target sentences")
+                        help="File of target sentences")
     parser.add_argument("--trans",
-            help="File to save translations in")
+                        help="File to save translations in")
     parser.add_argument("--normalize",
-            action="store_true", default=False,
-            help="Normalize log-prob with the word count")
+                        action="store_true", default=False,
+                        help="Normalize log-prob with the word count")
     parser.add_argument("--verbose",
-            action="store_true", default=False,
-            help="Be verbose")
+                        action="store_true", default=False,
+                        help="Be verbose")
     parser.add_argument("model_path",
-            help="Path to the model")
+                        help="Path to the model")
     parser.add_argument("changes",
-            nargs="?", default="",
-            help="Changes to state")
+                        nargs="?", default="",
+                        help="Changes to state")
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
@@ -378,134 +378,136 @@ def main():
         state.update(cPickle.load(src))
     state.update(eval("dict({})".format(args.changes)))
 
-    logging.basicConfig(level=getattr(logging, state['level']), format="%(asctime)s: %(name)s: %(levelname)s: %(message)s")
+    logging.basicConfig(level=getattr(logging, state['level']),
+                        format="%(asctime)s: %(name)s: %(levelname)s: %(message)s")
 
     rng = numpy.random.RandomState(state['seed'])
     enc_dec = RNNEncoderDecoder(state, rng, skip_init=True)
     enc_dec.build()
     lm_model = enc_dec.create_lm_model()
     lm_model.load(args.model_path)
-    indx_word_src = cPickle.load(open(state['word_indx'],'rb'))
-    indx_word_trg = cPickle.load(open(state['word_indx_trgt'],'rb'))
-
-    sampler = None
-    beam_search = None
-    if args.beam_search:
-        beam_search = BeamSearch(enc_dec)
-        beam_search.compile()
-    else:
-        sampler = enc_dec.create_sampler(many_samples=True)
-
-    idict_src = cPickle.load(open(state['indx_word'],'r'))
-    idict_trg = cPickle.load(open(state['indx_word_target'],'r'))
 
 
-    if args.source and args.target:
-        # Actually only beam search is currently supported here
-        # assert beam_search
-        # assert args.beam_size
+indx_word_src = cPickle.load(open(state['word_indx'], 'rb'))
+indx_word_trg = cPickle.load(open(state['word_indx_trgt'], 'rb'))
 
-        fsrc = open(args.source, 'r')
-        ftrg = open(args.target, 'r')
+sampler = None
+beam_search = None
+if args.beam_search:
+    beam_search = BeamSearch(enc_dec)
+    beam_search.compile()
+else:
+    sampler = enc_dec.create_sampler(many_samples=True)
 
-        start_time = time.time()
+idict_src = cPickle.load(open(state['indx_word'], 'r'))
+idict_trg = cPickle.load(open(state['indx_word_target'], 'r'))
 
-        n_samples = args.beam_size
-        total_cost = 0.0
-        logging.debug("Beam size: {}".format(n_samples))
-        for srcline, trgline in zip(fsrc, ftrg):
-            src_seqin = srcline.strip()
-            trg_seqin = trgline.strip()
-            src_seq, src_parsed_in = parse_input(state, indx_word_src, src_seqin, idx2word=idict_src)
-            trg_seq, trg_parsed_in = parse_input(state, indx_word_trg, trg_seqin, idx2word=idict_trg)
-            if args.verbose:
-                print "Parsed Input:", parsed_in
-            trans, costs, _ = sample(lm_model, src_seq, trg_seq, n_samples, sampler=sampler,
-                    beam_search=beam_search, ignore_unk=args.ignore_unk, 
-                    normalize=args.normalize, verbose=True, idict=idict_trg)
+if args.source and args.target:
+    # Actually only beam search is currently supported here
+    # assert beam_search
+    # assert args.beam_size
+
+    fsrc = open(args.source, 'r')
+    ftrg = open(args.target, 'r')
+
+    start_time = time.time()
+
+    n_samples = args.beam_size
+    total_cost = 0.0
+    logging.debug("Beam size: {}".format(n_samples))
+    for srcline, trgline in zip(fsrc, ftrg):
+        src_seqin = srcline.strip()
+        trg_seqin = trgline.strip()
+        src_seq, src_parsed_in = parse_input(state, indx_word_src, src_seqin, idx2word=idict_src)
+        trg_seq, trg_parsed_in = parse_input(state, indx_word_trg, trg_seqin, idx2word=idict_trg)
+        if args.verbose:
+            print "Parsed Input:", parsed_in
+        trans, costs, _ = sample(lm_model, src_seq, trg_seq, n_samples, sampler=sampler,
+                                 beam_search=beam_search, ignore_unk=args.ignore_unk,
+                                 normalize=args.normalize, verbose=True, idict=idict_trg)
+        best = numpy.argmin(costs)
+        # if args.verbose:
+        #     print "Translation:", trans[best]
+        total_cost += costs[best]
+
+    fsrc.close()
+    ftrg.close()
+
+elif args.source and args.trans:
+    # Actually only beam search is currently supported here
+    assert beam_search
+    assert args.beam_size
+
+    fsrc = open(args.source, 'r')
+    ftrans = open(args.trans, 'w')
+    csv_trans = csv.writer(ftrans, quoting=csv.QUOTE_MINIMAL)
+
+    start_time = time.time()
+
+    n_samples = args.beam_size
+    total_cost = 0.0
+    logging.debug("Beam size: {}".format(n_samples))
+    for i, line in enumerate(fsrc):
+        seqin = line.strip()
+        seq, parsed_in = parse_input(state, indx_word, seqin, idx2word=idict_src)
+        if args.verbose:
+            print "Parsed Input:", parsed_in
+        trans, costs, _ = sample(lm_model, seq, n_samples, sampler=sampler,
+                                 beam_search=beam_search, ignore_unk=args.ignore_unk, normalize=args.normalize)
+
+        if len(trans):
             best = numpy.argmin(costs)
-            # if args.verbose:
-            #     print "Translation:", trans[best]
-            total_cost += costs[best]
-
-        fsrc.close()
-        ftrg.close()
-
-    elif args.source and args.trans:
-        # Actually only beam search is currently supported here
-        assert beam_search
-        assert args.beam_size
-
-        fsrc = open(args.source, 'r')
-        ftrans = open(args.trans, 'w')
-        csv_trans = csv.writer(ftrans, quoting=csv.QUOTE_MINIMAL)
-
-        start_time = time.time()
-
-        n_samples = args.beam_size
-        total_cost = 0.0
-        logging.debug("Beam size: {}".format(n_samples))
-        for i, line in enumerate(fsrc):
-            seqin = line.strip()
-            seq, parsed_in = parse_input(state, indx_word, seqin, idx2word=idict_src)
+            # print >>ftrans, trans[best]
+            csv_trans.writerow([seqin, trans[best], costs[best]])
             if args.verbose:
-                print "Parsed Input:", parsed_in
-            trans, costs, _ = sample(lm_model, seq, n_samples, sampler=sampler,
-                    beam_search=beam_search, ignore_unk=args.ignore_unk, normalize=args.normalize)
-            
-            if len(trans):
-                best = numpy.argmin(costs)
-                #print >>ftrans, trans[best]
-                csv_trans.writerow([seqin, trans[best], costs[best]])
-                if args.verbose:
-                    print "Translation:", trans[best]
-                total_cost += costs[best]
-            if (i + 1)  % 100 == 0:
-                ftrans.flush()
-                logger.debug("Current speed is {} per sentence".
-                        format((time.time() - start_time) / (i + 1)))
-        print "Total cost of the translations: {}".format(total_cost)
+                print "Translation:", trans[best]
+            total_cost += costs[best]
+        if (i + 1) % 100 == 0:
+            ftrans.flush()
+            logger.debug("Current speed is {} per sentence".
+                         format((time.time() - start_time) / (i + 1)))
+    print "Total cost of the translations: {}".format(total_cost)
 
-        fsrc.close()
-        ftrans.close()
-    elif args.source:
-        fsrc = open(args.source, 'rb')
-        n_samples = args.beam_size
-        for i, line in enumerate(fsrc):
-            seqin = line.strip()
-            seq, parsed_in = parse_input(state,
-                                         indx_word,
-                                         seqin,
-                                         idx2word=idict_src)
-            print 'Parsed Input:', parsed_in
-            trans, cost, _ = sample(lm_model,
-                                    seq,
-                                    n_samples,
-                                    beam_search=beam_search,
-                                    ignore_unk=args.ignore_unk,
-                                    normalize=args.normalize,
-                                    verbose=True)
+    fsrc.close()
+    ftrans.close()
+elif args.source:
+    fsrc = open(args.source, 'rb')
+    n_samples = args.beam_size
+    for i, line in enumerate(fsrc):
+        seqin = line.strip()
+        seq, parsed_in = parse_input(state,
+                                     indx_word,
+                                     seqin,
+                                     idx2word=idict_src)
+        print 'Parsed Input:', parsed_in
+        trans, cost, _ = sample(lm_model,
+                                seq,
+                                n_samples,
+                                beam_search=beam_search,
+                                ignore_unk=args.ignore_unk,
+                                normalize=args.normalize,
+                                verbose=True)
 
-    else:
-        while True:
-            try:
-                seqin = raw_input('Input Sequence: ')
-                n_samples = int(raw_input('How many samples? '))
-                alpha = None
-                if not args.beam_search:
-                    alpha = float(raw_input('Inverse Temperature? '))
-                seq, parsed_in = parse_input(state, indx_word, seqin, idx2word=idict_src)
+else:
+    while True:
+        try:
+            seqin = raw_input('Input Sequence: ')
+            n_samples = int(raw_input('How many samples? '))
+            alpha = None
+            if not args.beam_search:
+                alpha = float(raw_input('Inverse Temperature? '))
+            seq, parsed_in = parse_input(state, indx_word, seqin, idx2word=idict_src)
 
-                print "Parsed Input:", parsed_in
-            except Exception:
-                print "Exception while parsing your input:"
-                traceback.print_exc()
-                continue
+            print "Parsed Input:", parsed_in
+        except Exception:
+            print "Exception while parsing your input:"
+            traceback.print_exc()
+            continue
 
-            sample(lm_model, seq, n_samples, sampler=sampler,
-                    beam_search=beam_search,
-                    ignore_unk=args.ignore_unk, normalize=args.normalize,
-                    alpha=alpha, verbose=True)
+        sample(lm_model, seq, n_samples, sampler=sampler,
+               beam_search=beam_search,
+               ignore_unk=args.ignore_unk, normalize=args.normalize,
+               alpha=alpha, verbose=True)
 
 if __name__ == "__main__":
     main()

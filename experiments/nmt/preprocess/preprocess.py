@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 
 import argparse
+import bz2
 import cPickle
 import gzip
-import bz2
 import logging
-import os
-
 import numpy
-import tables
-
+import os
 from collections import Counter
-from operator import add
 from numpy.lib.stride_tricks import as_strided
+
+import tables
 
 parser = argparse.ArgumentParser(
     description="""
@@ -36,7 +34,7 @@ parser.add_argument("-n", "--ngram", type=int, metavar="N",
                     help="create n-grams")
 parser.add_argument("-v", "--vocab", type=int, metavar="N",
                     help="limit vocabulary size to this number, which must "
-                          "include BOS/EOS and OOV markers")
+                         "include BOS/EOS and OOV markers")
 parser.add_argument("-p", "--pickle", action="store_true",
                     help="pickle the text as a list of lists of ints")
 parser.add_argument("-s", "--split", type=float, metavar="N",
@@ -115,8 +113,7 @@ def create_dictionary():
         count_filename = base_filename + '.count.pkl'
         input_filename = os.path.basename(input_file.name)
         if os.path.isfile(count_filename) and not args.overwrite:
-            logger.info("Loading word counts for %s from %s"
-                        % (input_filename, count_filename))
+            logger.info("Loading word counts for %s from %s" % (input_filename, count_filename))
             with open(count_filename, 'rb') as f:
                 counter = cPickle.load(f)
             sentence_count = sum([1 for line in input_file])
@@ -201,7 +198,7 @@ def binarize():
                     [0] * (args.ngram - 1) + binarized_sentence + [0]
                 )
                 ngrams[total_ngram_count + ngram_count:
-                       total_ngram_count + ngram_count + len(words) + 1] =  \
+                total_ngram_count + ngram_count + len(words) + 1] = \
                     as_strided(
                         padded_sentence,
                         shape=(len(words) + 1, args.ngram),

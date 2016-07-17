@@ -1,34 +1,28 @@
-import numpy
-import logging
-import pprint
-import operator
 import itertools
+import logging
+import numpy
+import operator
+import pprint
 
 import theano
 import theano.tensor as TT
-from theano import pp
 from theano.ifelse import ifelse
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
-from groundhog.layers import\
-        Layer,\
-        MultiLayer,\
-        SoftmaxLayer,\
-        HierarchicalSoftmaxLayer,\
-        LSTMLayer, \
-        RecurrentLayer,\
-        RecursiveConvolutionalLayer,\
-        UnaryOp,\
-        Shift,\
-        LastState,\
-        DropOp,\
-        Concatenate
-from groundhog.models import LM_Model
-from groundhog.datasets import PytablesBitextIterator
-from groundhog.utils import sample_zeros, sample_weights_orth, init_bias, sample_weights_classic
 import groundhog.utils as utils
+from groundhog.datasets import PytablesBitextIterator
+from groundhog.layers import \
+    Layer, \
+    MultiLayer, \
+    UnaryOp, \
+    Shift, \
+    LastState, \
+    DropOp, \
+    Concatenate
+from groundhog.models import LM_Model
+from groundhog.utils import sample_weights_classic
 
 logger = logging.getLogger(__name__)
+
 
 def create_padded_batch(state, x, y, return_dict=False):
     """A callback given to the iterator to transform data in suitable format
@@ -58,9 +52,9 @@ def create_padded_batch(state, x, y, return_dict=False):
     my = state['seqlen']
     if state['trim_batches']:
         # Similar length for all source sequences
-        mx = numpy.minimum(state['seqlen'], max([len(xx) for xx in x[0]]))+1
+        mx = numpy.minimum(state['seqlen'], max([len(xx) for xx in x[0]])) + 1
         # Similar length for all target sequences
-        my = numpy.minimum(state['seqlen'], max([len(xx) for xx in y[0]]))+1
+        my = numpy.minimum(state['seqlen'], max([len(xx) for xx in y[0]])) + 1
 
     # Batch size
     n = x[0].shape[0]
@@ -104,20 +98,20 @@ def create_padded_batch(state, x, y, return_dict=False):
     # - source sequence and target sequence have null_sym ending
     # Why did not we filter them earlier?
     for idx in xrange(X.shape[1]):
-        if numpy.sum(Xmask[:,idx]) == 0 and numpy.sum(Ymask[:,idx]) == 0:
+        if numpy.sum(Xmask[:, idx]) == 0 and numpy.sum(Ymask[:, idx]) == 0:
             null_inputs[idx] = 1
-        if Xmask[-1,idx] and X[-1,idx] != state['null_sym_source']:
+        if Xmask[-1, idx] and X[-1, idx] != state['null_sym_source']:
             null_inputs[idx] = 1
-        if Ymask[-1,idx] and Y[-1,idx] != state['null_sym_target']:
+        if Ymask[-1, idx] and Y[-1, idx] != state['null_sym_target']:
             null_inputs[idx] = 1
 
     valid_inputs = 1. - null_inputs
 
     # Leave only valid inputs
-    X = X[:,valid_inputs.nonzero()[0]]
-    Y = Y[:,valid_inputs.nonzero()[0]]
-    Xmask = Xmask[:,valid_inputs.nonzero()[0]]
-    Ymask = Ymask[:,valid_inputs.nonzero()[0]]
+    X = X[:, valid_inputs.nonzero()[0]]
+    Y = Y[:, valid_inputs.nonzero()[0]]
+    Xmask = Xmask[:, valid_inputs.nonzero()[0]]
+    Ymask = Ymask[:, valid_inputs.nonzero()[0]]
     if len(valid_inputs.nonzero()[0]) <= 0:
         return None
 
@@ -126,12 +120,12 @@ def create_padded_batch(state, x, y, return_dict=False):
     Y[Y >= state['n_sym_target']] = state['unk_sym_target']
 
     if return_dict:
-        return {'x' : X, 'x_mask' : Xmask, 'y': Y, 'y_mask' : Ymask}
+        return {'x': X, 'x_mask': Xmask, 'y': Y, 'y_mask': Ymask}
     else:
         return X, Xmask, Y, Ymask
 
-def get_batch_iterator(state):
 
+def get_batch_iterator(state):
     class Iterator(PytablesBitextIterator):
 
         def __init__(self, *args, **kwargs):
@@ -148,11 +142,11 @@ def get_batch_iterator(state):
                 y = numpy.asarray(list(itertools.chain(*map(operator.itemgetter(1), data))))
                 lens = numpy.asarray([map(len, x), map(len, y)])
                 order = numpy.argsort(lens.max(axis=0)) if state['sort_k_batches'] > 1 \
-                        else numpy.arange(len(x))
+                    else numpy.arange(len(x))
                 for k in range(k_batches):
                     indices = order[k * batch_size:(k + 1) * batch_size]
                     batch = create_padded_batch(state, [x[indices]], [y[indices]],
-                            return_dict=True)
+                                                return_dict=True)
                     if batch:
                         yield batch
 
@@ -196,6 +190,7 @@ def get_batch_iterator(state):
         max_len=state['seqlen'])
 
     return train_data, valid_data
+
 
 class RecurrentLayerWithSearch(Layer):
     """A copy of RecurrentLayer from groundhog"""
@@ -248,55 +243,55 @@ class RecurrentLayerWithSearch(Layer):
         assert rng is not None, "random number generator should not be empty!"
 
         super(RecurrentLayerWithSearch, self).__init__(self.n_hids,
-                self.n_hids, rng, name)
+                                                       self.n_hids, rng, name)
 
         self.params = []
         self._init_params()
 
     def _init_params(self):
         self.W_hh = theano.shared(
-                self.init_fn(self.n_hids,
-                self.n_hids,
-                -1,
-                self.scale,
-                rng=self.rng),
-                name="W_%s"%self.name)
+            self.init_fn(self.n_hids,
+                         self.n_hids,
+                         -1,
+                         self.scale,
+                         rng=self.rng),
+            name="W_%s" % self.name)
         self.params = [self.W_hh]
         self.G_hh = theano.shared(
-                self.init_fn(self.n_hids,
-                    self.n_hids,
-                    -1,
-                    self.scale,
-                    rng=self.rng),
-                name="G_%s"%self.name)
+            self.init_fn(self.n_hids,
+                         self.n_hids,
+                         -1,
+                         self.scale,
+                         rng=self.rng),
+            name="G_%s" % self.name)
         self.params.append(self.G_hh)
         self.R_hh = theano.shared(
-                self.init_fn(self.n_hids,
-                    self.n_hids,
-                    -1,
-                    self.scale,
-                    rng=self.rng),
-                name="R_%s"%self.name)
+            self.init_fn(self.n_hids,
+                         self.n_hids,
+                         -1,
+                         self.scale,
+                         rng=self.rng),
+            name="R_%s" % self.name)
         self.params.append(self.R_hh)
         self.A_cp = theano.shared(
-                sample_weights_classic(self.c_dim,
-                    self.n_hids,
-                    -1,
-                    10 ** (-3),
-                    rng=self.rng),
-                name="A_%s"%self.name)
+            sample_weights_classic(self.c_dim,
+                                   self.n_hids,
+                                   -1,
+                                   10 ** (-3),
+                                   rng=self.rng),
+            name="A_%s" % self.name)
         self.params.append(self.A_cp)
         self.B_hp = theano.shared(
-                sample_weights_classic(self.n_hids,
-                    self.n_hids,
-                    -1,
-                    10 ** (-3),
-                    rng=self.rng),
-                name="B_%s"%self.name)
+            sample_weights_classic(self.n_hids,
+                                   self.n_hids,
+                                   -1,
+                                   10 ** (-3),
+                                   rng=self.rng),
+            name="B_%s" % self.name)
         self.params.append(self.B_hp)
         self.D_pe = theano.shared(
-                numpy.zeros((self.n_hids, 1), dtype="float32"),
-                name="D_%s"%self.name)
+            numpy.zeros((self.n_hids, 1), dtype="float32"),
+            name="D_%s" % self.name)
         self.params.append(self.D_pe)
         self.params_grad_scale = [self.grad_scale for x in self.params]
 
@@ -378,7 +373,7 @@ class RecurrentLayerWithSearch(Layer):
 
         # Form projection to the tanh layer from the source annotation.
         if not p_from_c:
-            p_from_c =  utils.dot(c, A_cp).reshape((source_len, source_num, dim))
+            p_from_c = utils.dot(c, A_cp).reshape((source_len, source_num, dim))
 
         # Sum projections - broadcasting happens at the dimension 1.
         p = p_from_h + p_from_c
@@ -407,7 +402,7 @@ class RecurrentLayerWithSearch(Layer):
         # Reset gate:
         # optionally reset the hidden state.
         reseter = self.reseter_activation(TT.dot(state_before, R_hh) +
-                reseter_below)
+                                          reseter_below)
         reseted_state_before = reseter * state_before
 
         # Feed the input to obtain potential new state.
@@ -417,13 +412,13 @@ class RecurrentLayerWithSearch(Layer):
         # Update gate:
         # optionally reject the potential new state and use the new one.
         updater = self.updater_activation(TT.dot(state_before, G_hh) +
-                updater_below)
-        h = updater * h + (1-updater) * state_before
+                                          updater_below)
+        h = updater * h + (1 - updater) * state_before
 
         if mask is not None:
-            if h.ndim ==2 and mask.ndim==1:
-                mask = mask.dimshuffle(0,'x')
-            h = mask * h + (1-mask) * state_before
+            if h.ndim == 2 and mask.ndim == 1:
+                mask = mask.dimshuffle(0, 'x')
+            h = mask * h + (1 - mask) * state_before
 
         results = [h, ctx]
         if return_alignment:
@@ -447,7 +442,7 @@ class RecurrentLayerWithSearch(Layer):
 
         updater_below = gater_below
 
-        if theano.config.floatX=='float32':
+        if theano.config.floatX == 'float32':
             floatX = numpy.float32
         else:
             floatX = numpy.float64
@@ -458,7 +453,7 @@ class RecurrentLayerWithSearch(Layer):
         if batch_size is None and state_below.ndim == 3:
             batch_size = state_below.shape[1]
         if state_below.ndim == 2 and \
-           (not isinstance(batch_size,int) or batch_size > 1):
+                (not isinstance(batch_size, int) or batch_size > 1):
             state_below = state_below.reshape((nsteps, batch_size, self.n_in))
             if updater_below:
                 updater_below = updater_below.reshape((nsteps, batch_size, self.n_in))
@@ -471,47 +466,47 @@ class RecurrentLayerWithSearch(Layer):
             else:
                 init_state = TT.alloc(floatX(0), self.n_hids)
 
-        p_from_c =  utils.dot(c, self.A_cp).reshape(
-                (c.shape[0], c.shape[1], self.n_hids))
+        p_from_c = utils.dot(c, self.A_cp).reshape(
+            (c.shape[0], c.shape[1], self.n_hids))
 
         if mask:
             sequences = [state_below, mask, updater_below, reseter_below]
             non_sequences = [c, c_mask, p_from_c]
             #              seqs    | out |  non_seqs
-            fn = lambda x, m, g, r,   h,   c1, cm, pc : self.step_fprop(x, h, mask=m,
-                    gater_below=g, reseter_below=r,
-                    c=c1, p_from_c=pc, c_mask=cm,
-                    use_noise=use_noise, no_noise_bias=no_noise_bias,
-                    return_alignment=return_alignment)
+            fn = lambda x, m, g, r, h, c1, cm, pc: self.step_fprop(x, h, mask=m,
+                                                                   gater_below=g, reseter_below=r,
+                                                                   c=c1, p_from_c=pc, c_mask=cm,
+                                                                   use_noise=use_noise, no_noise_bias=no_noise_bias,
+                                                                   return_alignment=return_alignment)
         else:
             sequences = [state_below, updater_below, reseter_below]
             non_sequences = [c, p_from_c]
             #            seqs   | out | non_seqs
-            fn = lambda x, g, r,   h,    c1, pc : self.step_fprop(x, h,
-                    gater_below=g, reseter_below=r,
-                    c=c1, p_from_c=pc,
-                    use_noise=use_noise, no_noise_bias=no_noise_bias,
-                    return_alignment=return_alignment)
+            fn = lambda x, g, r, h, c1, pc: self.step_fprop(x, h,
+                                                            gater_below=g, reseter_below=r,
+                                                            c=c1, p_from_c=pc,
+                                                            use_noise=use_noise, no_noise_bias=no_noise_bias,
+                                                            return_alignment=return_alignment)
 
         outputs_info = [init_state, None]
         if return_alignment:
             outputs_info.append(None)
 
         rval, updates = theano.scan(fn,
-                        sequences=sequences,
-                        non_sequences=non_sequences,
-                        outputs_info=outputs_info,
-                        name='layer_%s'%self.name,
-                        truncate_gradient=truncate_gradient,
-                        n_steps=nsteps)
+                                    sequences=sequences,
+                                    non_sequences=non_sequences,
+                                    outputs_info=outputs_info,
+                                    name='layer_%s' % self.name,
+                                    truncate_gradient=truncate_gradient,
+                                    n_steps=nsteps)
         self.out = rval
         self.rval = rval
         self.updates = updates
 
         return self.out
 
-class ReplicateLayer(Layer):
 
+class ReplicateLayer(Layer):
     def __init__(self, n_times):
         self.n_times = n_times
         super(ReplicateLayer, self).__init__(0, 0, None)
@@ -526,8 +521,8 @@ class ReplicateLayer(Layer):
         self.out = a * b
         return self.out
 
-class PadLayer(Layer):
 
+class PadLayer(Layer):
     def __init__(self, required):
         self.required = required
         Layer.__init__(self, 0, 0, None)
@@ -540,19 +535,20 @@ class PadLayer(Layer):
         self.out = ifelse(diff < 0, if_shorter, if_longer)
         return self.out
 
-class ZeroLayer(Layer):
 
+class ZeroLayer(Layer):
     def fprop(self, x):
         self.out = TT.zeros(x.shape)
         return self.out
+
 
 def none_if_zero(x):
     if x == 0:
         return None
     return x
 
-class Maxout(object):
 
+class Maxout(object):
     def __init__(self, maxout_part):
         self.maxout_part = maxout_part
 
@@ -570,20 +566,21 @@ class Maxout(object):
             x = x.max(2)
         return x
 
+
 def prefix_lookup(state, p, s):
-    if '%s_%s'%(p,s) in state:
-        return state['%s_%s'%(p, s)]
+    if '%s_%s' % (p, s) in state:
+        return state['%s_%s' % (p, s)]
     return state[s]
 
-class EncoderDecoderBase(object):
 
+class EncoderDecoderBase(object):
     def _create_embedding_layers(self):
         logger.debug("_create_embedding_layers")
         self.approx_embedder = MultiLayer(
             self.rng,
             n_in=self.state['n_sym_source']
-                if self.prefix.find("enc") >= 0
-                else self.state['n_sym_target'],
+            if self.prefix.find("enc") >= 0
+            else self.state['n_sym_target'],
             n_hids=[self.state['rank_n_approx']],
             activation=[self.state['rank_n_activ']],
             name='{}_approx_embdr'.format(self.prefix),
@@ -593,9 +590,9 @@ class EncoderDecoderBase(object):
         # the one used as input,
         # the one used to control resetting gate,
         # the one used to control update gate.
-        self.input_embedders = [lambda x : 0] * self.num_levels
-        self.reset_embedders = [lambda x : 0] * self.num_levels
-        self.update_embedders = [lambda x : 0] * self.num_levels
+        self.input_embedders = [lambda x: 0] * self.num_levels
+        self.reset_embedders = [lambda x: 0] * self.num_levels
+        self.update_embedders = [lambda x: 0] * self.num_levels
         embedder_kwargs = dict(self.default_kwargs)
         embedder_kwargs.update(dict(
             n_in=self.state['rank_n_approx'],
@@ -613,7 +610,7 @@ class EncoderDecoderBase(object):
                     name='{}_update_embdr_{}'.format(self.prefix, level),
                     **embedder_kwargs)
             if prefix_lookup(self.state, self.prefix, 'rec_reseting'):
-                self.reset_embedders[level] =  MultiLayer(
+                self.reset_embedders[level] = MultiLayer(
                     self.rng,
                     learn_bias=False,
                     name='{}_reset_embdr_{}'.format(self.prefix, level),
@@ -623,25 +620,25 @@ class EncoderDecoderBase(object):
         logger.debug("_create_inter_level_layers")
         inter_level_kwargs = dict(self.default_kwargs)
         inter_level_kwargs.update(
-                n_in=self.state['dim'],
-                n_hids=self.state['dim'] * self.state['dim_mult'],
-                activation=['lambda x:x'])
+            n_in=self.state['dim'],
+            n_hids=self.state['dim'] * self.state['dim_mult'],
+            activation=['lambda x:x'])
 
         self.inputers = [0] * self.num_levels
         self.reseters = [0] * self.num_levels
         self.updaters = [0] * self.num_levels
         for level in range(1, self.num_levels):
             self.inputers[level] = MultiLayer(self.rng,
-                    name="{}_inputer_{}".format(self.prefix, level),
-                    **inter_level_kwargs)
+                                              name="{}_inputer_{}".format(self.prefix, level),
+                                              **inter_level_kwargs)
             if prefix_lookup(self.state, self.prefix, 'rec_reseting'):
                 self.reseters[level] = MultiLayer(self.rng,
-                    name="{}_reseter_{}".format(self.prefix, level),
-                    **inter_level_kwargs)
+                                                  name="{}_reseter_{}".format(self.prefix, level),
+                                                  **inter_level_kwargs)
             if prefix_lookup(self.state, self.prefix, 'rec_gating'):
                 self.updaters[level] = MultiLayer(self.rng,
-                    name="{}_updater_{}".format(self.prefix, level),
-                    **inter_level_kwargs)
+                                                  name="{}_updater_{}".format(self.prefix, level),
+                                                  **inter_level_kwargs)
 
     def _create_transition_layers(self):
         logger.debug("_create_transition_layers")
@@ -652,25 +649,25 @@ class EncoderDecoderBase(object):
             add_args = dict(c_dim=self.state['c_dim'])
         for level in range(self.num_levels):
             self.transitions.append(rec_layer(
-                    self.rng,
-                    n_hids=self.state['dim'],
-                    activation=prefix_lookup(self.state, self.prefix, 'activ'),
-                    bias_scale=self.state['bias'],
-                    init_fn=(self.state['rec_weight_init_fn']
-                        if not self.skip_init
-                        else "sample_zeros"),
-                    scale=prefix_lookup(self.state, self.prefix, 'rec_weight_scale'),
-                    weight_noise=self.state['weight_noise_rec'],
-                    dropout=self.state['dropout_rec'],
-                    gating=prefix_lookup(self.state, self.prefix, 'rec_gating'),
-                    gater_activation=prefix_lookup(self.state, self.prefix, 'rec_gater'),
-                    reseting=prefix_lookup(self.state, self.prefix, 'rec_reseting'),
-                    reseter_activation=prefix_lookup(self.state, self.prefix, 'rec_reseter'),
-                    name='{}_transition_{}'.format(self.prefix, level),
-                    **add_args))
+                self.rng,
+                n_hids=self.state['dim'],
+                activation=prefix_lookup(self.state, self.prefix, 'activ'),
+                bias_scale=self.state['bias'],
+                init_fn=(self.state['rec_weight_init_fn']
+                         if not self.skip_init
+                         else "sample_zeros"),
+                scale=prefix_lookup(self.state, self.prefix, 'rec_weight_scale'),
+                weight_noise=self.state['weight_noise_rec'],
+                dropout=self.state['dropout_rec'],
+                gating=prefix_lookup(self.state, self.prefix, 'rec_gating'),
+                gater_activation=prefix_lookup(self.state, self.prefix, 'rec_gater'),
+                reseting=prefix_lookup(self.state, self.prefix, 'rec_reseting'),
+                reseter_activation=prefix_lookup(self.state, self.prefix, 'rec_reseter'),
+                name='{}_transition_{}'.format(self.prefix, level),
+                **add_args))
+
 
 class Encoder(EncoderDecoderBase):
-
     def __init__(self, state, rng, prefix='enc', skip_init=False):
         self.state = state
         self.rng = rng
@@ -712,14 +709,14 @@ class Encoder(EncoderDecoderBase):
                 name="{}_repr_contrib_{}".format(self.prefix, level),
                 **self.default_kwargs)
         self.repr_calculator = UnaryOp(
-                activation=eval(self.state['unary_activ']),
-                name="{}_repr_calc".format(self.prefix))
+            activation=eval(self.state['unary_activ']),
+            name="{}_repr_calc".format(self.prefix))
 
     def build_encoder(self, x,
-            x_mask=None,
-            use_noise=False,
-            approx_embeddings=None,
-            return_hidden_layers=False):
+                      x_mask=None,
+                      use_noise=False,
+                      approx_embeddings=None,
+                      return_hidden_layers=False):
         """Create the computational graph of the RNN Encoder
 
         :param x:
@@ -785,13 +782,13 @@ class Encoder(EncoderDecoderBase):
                 reset_signals[level] += self.reseters[level](hidden_layers[-1])
             # transitions are RecurrentLayers
             hidden_layers.append(self.transitions[level](
-                    input_signals[level],
-                    nsteps=x.shape[0],
-                    batch_size=x.shape[1] if x.ndim == 2 else 1,
-                    mask=x_mask,
-                    gater_below=none_if_zero(update_signals[level]),
-                    reseter_below=none_if_zero(reset_signals[level]),
-                    use_noise=use_noise))
+                input_signals[level],
+                nsteps=x.shape[0],
+                batch_size=x.shape[1] if x.ndim == 2 else 1,
+                mask=x_mask,
+                gater_below=none_if_zero(update_signals[level]),
+                reseter_below=none_if_zero(reset_signals[level]),
+                use_noise=use_noise))
         if return_hidden_layers:
             assert self.state['encoder_stack'] == 1
             return hidden_layers[0]
@@ -805,7 +802,7 @@ class Encoder(EncoderDecoderBase):
         if self.num_levels == 1 or self.state['take_top']:
             c = LastState()(hidden_layers[-1])
             if c.out.ndim == 2:
-                c.out = c.out[:,:self.state['dim']]
+                c.out = c.out[:, :self.state['dim']]
             else:
                 c.out = c.out[:self.state['dim']]
             return c
@@ -822,14 +819,14 @@ class Encoder(EncoderDecoderBase):
         c = self.repr_calculator(sum(contributions[1:], contributions[0]))
         return c
 
-class Decoder(EncoderDecoderBase):
 
+class Decoder(EncoderDecoderBase):
     EVALUATION = 0
     SAMPLING = 1
     BEAM_SEARCH = 2
 
     def __init__(self, state, rng, prefix='dec',
-            skip_init=False, compute_alignment=False):
+                 skip_init=False, compute_alignment=False):
         self.state = state
         self.rng = rng
         self.prefix = prefix
@@ -862,9 +859,9 @@ class Decoder(EncoderDecoderBase):
         if self.state['search']:
             assert self.num_levels == 1
             self.transitions[0].set_decoding_layers(
-                    self.decode_inputers[0],
-                    self.decode_reseters[0],
-                    self.decode_updaters[0])
+                self.decode_inputers[0],
+                self.decode_reseters[0],
+                self.decode_updaters[0])
 
     def _create_initialization_layers(self):
         logger.debug("_create_initialization_layers")
@@ -882,19 +879,19 @@ class Decoder(EncoderDecoderBase):
 
     def _create_decoding_layers(self):
         logger.debug("_create_decoding_layers")
-        self.decode_inputers = [lambda x : 0] * self.num_levels
-        self.decode_reseters = [lambda x : 0] * self.num_levels
-        self.decode_updaters = [lambda x : 0] * self.num_levels
+        self.decode_inputers = [lambda x: 0] * self.num_levels
+        self.decode_reseters = [lambda x: 0] * self.num_levels
+        self.decode_updaters = [lambda x: 0] * self.num_levels
         # self.back_decode_inputers = [lambda x : 0] * self.num_levels
         # self.back_decode_reseters = [lambda x : 0] * self.num_levels
         # self.back_decode_updaters = [lambda x : 0] * self.num_levels
 
         decoding_kwargs = dict(self.default_kwargs)
         decoding_kwargs.update(dict(
-                n_in=self.state['c_dim'],
-                n_hids=self.state['dim'] * self.state['dim_mult'],
-                activation=['lambda x:x'],
-                learn_bias=False))
+            n_in=self.state['c_dim'],
+            n_hids=self.state['dim'] * self.state['dim_mult'],
+            activation=['lambda x:x'],
+            learn_bias=False))
 
         if self.state['decoding_inputs']:
             # use context from encoder
@@ -919,22 +916,22 @@ class Decoder(EncoderDecoderBase):
 
     def _create_readout_layers(self):
         softmax_layer = self.state['softmax_layer'] if 'softmax_layer' in self.state \
-                        else 'SoftmaxLayer'
+            else 'SoftmaxLayer'
 
         logger.debug("_create_readout_layers")
 
         readout_kwargs = dict(self.default_kwargs)
         readout_kwargs.update(dict(
-                n_hids=self.state['dim'],
-                activation='lambda x: x',
-            ))
+            n_hids=self.state['dim'],
+            activation='lambda x: x',
+        ))
 
         self.repr_readout = MultiLayer(
-                self.rng,
-                n_in=self.state['c_dim'],
-                learn_bias=False,
-                name='{}_repr_readout'.format(self.prefix),
-                **readout_kwargs)
+            self.rng,
+            n_in=self.state['c_dim'],
+            learn_bias=False,
+            name='{}_repr_readout'.format(self.prefix),
+            **readout_kwargs)
 
         # Attention - this is the only readout layer
         # with trainable bias. Should be careful with that.
@@ -962,34 +959,34 @@ class Decoder(EncoderDecoderBase):
             drop_layer = DropOp(rng=self.rng, dropout=self.state['dropout'])
             self.output_nonlinearities = [act_layer, drop_layer]
             self.output_layer = eval(softmax_layer)(
-                    self.rng,
-                    n_in = self.state['dim'] / self.state['maxout_part'],
-                    n_out = self.state['n_sym_target'],
-                    sparsity=-1,
-                    rank_n_approx=self.state['rank_n_approx'],
-                    name='{}_deep_softmax'.format(self.prefix),
-                    use_nce=self.state['use_nce'] if 'use_nce' in self.state else False,
-                    **self.default_kwargs)
+                self.rng,
+                n_in=self.state['dim'] / self.state['maxout_part'],
+                n_out=self.state['n_sym_target'],
+                sparsity=-1,
+                rank_n_approx=self.state['rank_n_approx'],
+                name='{}_deep_softmax'.format(self.prefix),
+                use_nce=self.state['use_nce'] if 'use_nce' in self.state else False,
+                **self.default_kwargs)
         else:
             self.output_nonlinearities = []
             self.output_layer = eval(softmax_layer)(
-                    self.rng,
-                    n_in = self.state['dim'],
-                    n_out = self.state['n_sym_target'],
-                    sparsity=-1,
-                    rank_n_approx=self.state['rank_n_approx'],
-                    name='dec_softmax',
-                    sum_over_time=True,
-                    use_nce=self.state['use_nce'] if 'use_nce' in self.state else False,
-                    **self.default_kwargs)
+                self.rng,
+                n_in=self.state['dim'],
+                n_out=self.state['n_sym_target'],
+                sparsity=-1,
+                rank_n_approx=self.state['rank_n_approx'],
+                name='dec_softmax',
+                sum_over_time=True,
+                use_nce=self.state['use_nce'] if 'use_nce' in self.state else False,
+                **self.default_kwargs)
 
     def build_decoder(self, c, y,
-            c_mask=None,
-            y_mask=None,
-            step_num=None,
-            mode=EVALUATION,
-            given_init_states=None,
-            T=1):
+                      c_mask=None,
+                      y_mask=None,
+                      step_num=None,
+                      mode=EVALUATION,
+                      given_init_states=None,
+                      T=1):
         """Create the computational graph of the RNN Decoder.
 
         :param c:
@@ -1102,10 +1099,10 @@ class Decoder(EncoderDecoderBase):
                 update_signals[level] += self.updaters[level](hidden_layers[level - 1])
                 reset_signals[level] += self.reseters[level](hidden_layers[level - 1])
             add_kwargs = (dict(state_before=init_states[level])
-                        if mode != Decoder.EVALUATION
-                        else dict(init_state=init_states[level],
-                            batch_size=y.shape[1] if y.ndim == 2 else 1,
-                            nsteps=y.shape[0]))
+                          if mode != Decoder.EVALUATION
+                          else dict(init_state=init_states[level],
+                                    batch_size=y.shape[1] if y.ndim == 2 else 1,
+                                    nsteps=y.shape[0]))
             if self.state['search']:
                 add_kwargs['c'] = c
                 add_kwargs['c_mask'] = c_mask
@@ -1113,23 +1110,23 @@ class Decoder(EncoderDecoderBase):
                 if mode != Decoder.EVALUATION:
                     add_kwargs['step_num'] = step_num
             result = self.transitions[level](
-                    input_signals[level],
-                    mask=y_mask,
-                    gater_below=none_if_zero(update_signals[level]),
-                    reseter_below=none_if_zero(reset_signals[level]),
-                    one_step=mode != Decoder.EVALUATION,
-                    use_noise=mode == Decoder.EVALUATION,
-                    **add_kwargs)
+                input_signals[level],
+                mask=y_mask,
+                gater_below=none_if_zero(update_signals[level]),
+                reseter_below=none_if_zero(reset_signals[level]),
+                one_step=mode != Decoder.EVALUATION,
+                use_noise=mode == Decoder.EVALUATION,
+                **add_kwargs)
             if self.state['search']:
                 if self.compute_alignment:
-                    #This implicitly wraps each element of result.out with a Layer to keep track of the parameters.
-                    #It is equivalent to h=result[0], ctx=result[1] etc.
+                    # This implicitly wraps each element of result.out with a Layer to keep track of the parameters.
+                    # It is equivalent to h=result[0], ctx=result[1] etc.
                     h, ctx, alignment = result
                     if mode == Decoder.EVALUATION:
                         alignment = alignment.out
                 else:
-                    #This implicitly wraps each element of result.out with a Layer to keep track of the parameters.
-                    #It is equivalent to h=result[0], ctx=result[1]
+                    # This implicitly wraps each element of result.out with a Layer to keep track of the parameters.
+                    # It is equivalent to h=result[0], ctx=result[1]
                     h, ctx = result
             else:
                 h = result
@@ -1147,7 +1144,7 @@ class Decoder(EncoderDecoderBase):
             for level in range(self.num_levels):
                 hidden_layers[level].out = TT.concatenate([
                     TT.shape_padleft(init_states[level].out),
-                        hidden_layers[level].out])[:-1]
+                    hidden_layers[level].out])[:-1]
 
         # The output representation to be fed in softmax.
         # Shape if mode == evaluation
@@ -1163,9 +1160,9 @@ class Decoder(EncoderDecoderBase):
                 read_from = hidden_layers[level]
             read_from_var = read_from if type(read_from) == theano.tensor.TensorVariable else read_from.out
             if read_from_var.ndim == 3:
-                read_from_var = read_from_var[:,:,:self.state['dim']]
+                read_from_var = read_from_var[:, :, :self.state['dim']]
             else:
-                read_from_var = read_from_var[:,:self.state['dim']]
+                read_from_var = read_from_var[:, :self.state['dim']]
             if type(read_from) != theano.tensor.TensorVariable:
                 read_from.out = read_from_var
             else:
@@ -1175,8 +1172,8 @@ class Decoder(EncoderDecoderBase):
             if mode != Decoder.EVALUATION:
                 # state['check_first_word'] should always be true
                 check_first_word = (y > 0
-                    if self.state['check_first_word']
-                    else TT.ones((y.shape[0]), dtype="float32"))
+                                    if self.state['check_first_word']
+                                    else TT.ones((y.shape[0]), dtype="float32"))
                 # padright is necessary as we want to multiply each row with a certain scalar
                 readout += TT.shape_padright(check_first_word) * self.prev_word_readout(approx_embeddings).out
             else:
@@ -1191,36 +1188,35 @@ class Decoder(EncoderDecoderBase):
                     # reshape it back.
                     readout += Shift()(self.prev_word_readout(approx_embeddings).reshape(
                         (y.shape[0], y.shape[1], self.state['dim']))).reshape(
-                                readout.out.shape)
+                        readout.out.shape)
         for fun in self.output_nonlinearities:
             readout = fun(readout)
 
         if mode == Decoder.SAMPLING:
             sample = self.output_layer.get_sample(
-                    state_below=readout,
-                    temp=T)
+                state_below=readout,
+                temp=T)
             # Current SoftmaxLayer.get_cost is stupid,
             # that's why we have to reshape a lot.
             self.output_layer.get_cost(
-                    state_below=readout.out,
-                    temp=T,
-                    target=sample)
+                state_below=readout.out,
+                temp=T,
+                target=sample)
             log_prob = self.output_layer.cost_per_sample
             return [sample] + [log_prob] + hidden_layers
         elif mode == Decoder.BEAM_SEARCH:
             return self.output_layer(
-                    state_below=readout.out,
-                    temp=T).out
+                state_below=readout.out,
+                temp=T).out
         elif mode == Decoder.EVALUATION:
             return (self.output_layer.train(
-                    state_below=readout,
-                    target=y,
-                    mask=y_mask,
-                    reg=None),
+                state_below=readout,
+                target=y,
+                mask=y_mask,
+                reg=None),
                     alignment)
         else:
             raise Exception("Unknown mode for build_decoder")
-
 
     def sampling_step(self, *args):
         """
@@ -1262,7 +1258,7 @@ class Decoder(EncoderDecoderBase):
 
     def build_sampler(self, n_samples, n_steps, T, c):
         states = [TT.zeros(shape=(n_samples,), dtype='int64'),
-                TT.zeros(shape=(n_samples,), dtype='float32')]
+                  TT.zeros(shape=(n_samples,), dtype='float32')]
         init_c = c[0, -self.state['dim']:]
         states += [ReplicateLayer(n_samples)(init(init_c).out).out for init in self.initializers]
 
@@ -1273,20 +1269,21 @@ class Decoder(EncoderDecoderBase):
         non_sequences = [c, T]
 
         outputs, updates = theano.scan(self.sampling_step,
-                outputs_info=states,
-                non_sequences=non_sequences,
-                sequences=[TT.arange(n_steps, dtype="int64")],
-                n_steps=n_steps,
-                name="{}_sampler_scan".format(self.prefix))
+                                       outputs_info=states,
+                                       non_sequences=non_sequences,
+                                       sequences=[TT.arange(n_steps, dtype="int64")],
+                                       n_steps=n_steps,
+                                       name="{}_sampler_scan".format(self.prefix))
         return (outputs[0], outputs[1]), updates
 
     def build_next_probs_predictor(self, c, step_num, y, init_states):
         return self.build_decoder(c, y, mode=Decoder.BEAM_SEARCH,
-                given_init_states=init_states, step_num=step_num)
+                                  given_init_states=init_states, step_num=step_num)
 
     def build_next_states_computer(self, c, step_num, y, init_states):
         return self.build_decoder(c, y, mode=Decoder.SAMPLING,
-                given_init_states=init_states, step_num=step_num)[2:]
+                                  given_init_states=init_states, step_num=step_num)[2:]
+
 
 class RNNEncoderDecoder(object):
     """This class encapsulates the translation model.
@@ -1301,8 +1298,8 @@ class RNNEncoderDecoder(object):
     """
 
     def __init__(self, state, rng,
-            skip_init=False,
-            compute_alignment=False):
+                 skip_init=False,
+                 compute_alignment=False):
         """Constructor.
 
         :param state:
@@ -1334,29 +1331,29 @@ class RNNEncoderDecoder(object):
 
         logger.debug("Create forward encoder")
         self.encoder = Encoder(self.state, self.rng,
-                prefix="enc",
-                skip_init=self.skip_init)
+                               prefix="enc",
+                               skip_init=self.skip_init)
         self.encoder.create_layers()
 
         logger.debug("Build forward encoding computation graph")
         forward_training_c = self.encoder.build_encoder(
-                self.x, self.x_mask,
-                use_noise=True,
-                return_hidden_layers=True)
+            self.x, self.x_mask,
+            use_noise=True,
+            return_hidden_layers=True)
 
         logger.debug("Create backward encoder")
         self.backward_encoder = Encoder(self.state, self.rng,
-                prefix="back_enc",
-                skip_init=self.skip_init)
+                                        prefix="back_enc",
+                                        skip_init=self.skip_init)
         self.backward_encoder.create_layers()
 
         logger.debug("Build backward encoding computation graph")
         backward_training_c = self.backward_encoder.build_encoder(
-                self.x[::-1],
-                self.x_mask[::-1],
-                use_noise=True,
-                approx_embeddings=self.encoder.approx_embedder(self.x[::-1]),
-                return_hidden_layers=True)
+            self.x[::-1],
+            self.x_mask[::-1],
+            use_noise=True,
+            approx_embeddings=self.encoder.approx_embedder(self.x[::-1]),
+            return_hidden_layers=True)
         # Reverse time for backward representations.
         backward_training_c.out = backward_training_c.out[::-1]
 
@@ -1364,22 +1361,22 @@ class RNNEncoderDecoder(object):
             training_c_components.append(forward_training_c)
         if self.state['last_forward']:
             training_c_components.append(
-                    ReplicateLayer(self.x.shape[0])(forward_training_c[-1]))
+                ReplicateLayer(self.x.shape[0])(forward_training_c[-1]))
         if self.state['backward']:
             training_c_components.append(backward_training_c)
         if self.state['last_backward']:
             training_c_components.append(ReplicateLayer(self.x.shape[0])
-                    (backward_training_c[0]))
+                                         (backward_training_c[0]))
         self.state['c_dim'] = len(training_c_components) * self.state['dim']
 
         logger.debug("Create decoder")
         self.decoder = Decoder(self.state, self.rng,
-                skip_init=self.skip_init, compute_alignment=self.compute_alignment)
+                               skip_init=self.skip_init, compute_alignment=self.compute_alignment)
         self.decoder.create_layers()
         logger.debug("Build log-likelihood computation graph")
         self.predictions, self.alignment = self.decoder.build_decoder(
-                c=Concatenate(axis=2)(*training_c_components), c_mask=self.x_mask,
-                y=self.y, y_mask=self.y_mask)
+            c=Concatenate(axis=2)(*training_c_components), c_mask=self.x_mask,
+            y=self.y, y_mask=self.y_mask)
 
         # Annotation for sampling
         sampling_c_components = []
@@ -1390,33 +1387,33 @@ class RNNEncoderDecoder(object):
         self.n_steps = TT.lscalar("n_steps")
         self.T = TT.scalar("T")
         self.forward_sampling_c = self.encoder.build_encoder(
-                self.sampling_x,
-                return_hidden_layers=True).out
+            self.sampling_x,
+            return_hidden_layers=True).out
         self.backward_sampling_c = self.backward_encoder.build_encoder(
-                self.sampling_x[::-1],
-                approx_embeddings=self.encoder.approx_embedder(self.sampling_x[::-1]),
-                return_hidden_layers=True).out[::-1]
+            self.sampling_x[::-1],
+            approx_embeddings=self.encoder.approx_embedder(self.sampling_x[::-1]),
+            return_hidden_layers=True).out[::-1]
         if self.state['forward']:
             sampling_c_components.append(self.forward_sampling_c)
         if self.state['last_forward']:
             sampling_c_components.append(ReplicateLayer(self.sampling_x.shape[0])
-                    (self.forward_sampling_c[-1]))
+                                         (self.forward_sampling_c[-1]))
         if self.state['backward']:
             sampling_c_components.append(self.backward_sampling_c)
         if self.state['last_backward']:
             sampling_c_components.append(ReplicateLayer(self.sampling_x.shape[0])
-                    (self.backward_sampling_c[0]))
+                                         (self.backward_sampling_c[0]))
 
         self.sampling_c = Concatenate(axis=1)(*sampling_c_components).out
-        (self.sample, self.sample_log_prob), self.sampling_updates =\
+        (self.sample, self.sample_log_prob), self.sampling_updates = \
             self.decoder.build_sampler(self.n_samples, self.n_steps, self.T,
-                    c=self.sampling_c)
+                                       c=self.sampling_c)
 
         logger.debug("Create auxiliary variables")
         self.c = TT.matrix("c")
         self.step_num = TT.lscalar("step_num")
         self.current_states = [TT.matrix("cur_{}".format(i))
-                for i in range(self.decoder.num_levels)]
+                               for i in range(self.decoder.num_levels)]
         self.gen_y = TT.lvector("gen_y")
 
     def create_lm_model(self):
@@ -1437,18 +1434,18 @@ class RNNEncoderDecoder(object):
     def create_representation_computer(self):
         if not hasattr(self, "repr_fn"):
             self.repr_fn = theano.function(
-                    inputs=[self.sampling_x],
-                    outputs=[self.sampling_c],
-                    name="repr_fn")
+                inputs=[self.sampling_x],
+                outputs=[self.sampling_c],
+                name="repr_fn")
         return self.repr_fn
 
     def create_initializers(self):
         if not hasattr(self, "init_fn"):
             init_c = self.sampling_c[0, -self.state['dim']:]
             self.init_fn = theano.function(
-                    inputs=[self.sampling_c],
-                    outputs=self.decoder.build_initializers(init_c),
-                    name="init_fn")
+                inputs=[self.sampling_c],
+                outputs=self.decoder.build_initializers(init_c),
+                name="init_fn")
         return self.init_fn
 
     def create_sampler(self, many_samples=False):
@@ -1456,13 +1453,14 @@ class RNNEncoderDecoder(object):
             return self.sample_fn
         logger.debug("Compile sampler")
         self.sample_fn = theano.function(
-                inputs=[self.n_samples, self.n_steps, self.T, self.sampling_x],
-                outputs=[self.sample, self.sample_log_prob],
-                updates=self.sampling_updates,
-                name="sample_fn")
+            inputs=[self.n_samples, self.n_steps, self.T, self.sampling_x],
+            outputs=[self.sample, self.sample_log_prob],
+            updates=self.sampling_updates,
+            name="sample_fn")
         if not many_samples:
             def sampler(*args):
-                return map(lambda x : x.squeeze(), self.sample_fn(1, *args))
+                return map(lambda x: x.squeeze(), self.sample_fn(1, *args))
+
             return sampler
         return self.sample_fn
 
@@ -1470,65 +1468,69 @@ class RNNEncoderDecoder(object):
         if not hasattr(self, 'score_fn'):
             logger.debug("Compile scorer")
             self.score_fn = theano.function(
-                    inputs=self.inputs,
-                    outputs=[-self.predictions.cost_per_sample],
-                    name="score_fn")
+                inputs=self.inputs,
+                outputs=[-self.predictions.cost_per_sample],
+                name="score_fn")
         if batch:
             return self.score_fn
+
         def scorer(x, y):
             x_mask = numpy.ones(x.shape[0], dtype="float32")
             y_mask = numpy.ones(y.shape[0], dtype="float32")
             return self.score_fn(x[:, None], y[:, None],
-                    x_mask[:, None], y_mask[:, None])
+                                 x_mask[:, None], y_mask[:, None])
+
         return scorer
 
     def create_next_probs_computer(self):
         if not hasattr(self, 'next_probs_fn'):
             self.next_probs_fn = theano.function(
-                    inputs=[self.c, self.step_num, self.gen_y] + self.current_states,
-                    outputs=[self.decoder.build_next_probs_predictor(
-                        self.c, self.step_num, self.gen_y, self.current_states)],
-                    name="next_probs_fn", on_unused_input='warn')
+                inputs=[self.c, self.step_num, self.gen_y] + self.current_states,
+                outputs=[self.decoder.build_next_probs_predictor(
+                    self.c, self.step_num, self.gen_y, self.current_states)],
+                name="next_probs_fn", on_unused_input='warn')
         return self.next_probs_fn
 
     def create_next_states_computer(self):
         if not hasattr(self, 'next_states_fn'):
             self.next_states_fn = theano.function(
-                    inputs=[self.c, self.step_num, self.gen_y] + self.current_states,
-                    outputs=self.decoder.build_next_states_computer(
-                        self.c, self.step_num, self.gen_y, self.current_states),
-                    name="next_states_fn", on_unused_input='warn')
+                inputs=[self.c, self.step_num, self.gen_y] + self.current_states,
+                outputs=self.decoder.build_next_states_computer(
+                    self.c, self.step_num, self.gen_y, self.current_states),
+                name="next_states_fn", on_unused_input='warn')
         return self.next_states_fn
-
 
     def create_probs_computer(self, return_alignment=False):
         if not hasattr(self, 'probs_fn'):
             logger.debug("Compile probs computer")
             self.probs_fn = theano.function(
-                    inputs=self.inputs,
-                    outputs=[self.predictions.word_probs, self.alignment],
-                    name="probs_fn")
+                inputs=self.inputs,
+                outputs=[self.predictions.word_probs, self.alignment],
+                name="probs_fn")
+
         def probs_computer(x, y):
             x_mask = numpy.ones(x.shape[0], dtype="float32")
             y_mask = numpy.ones(y.shape[0], dtype="float32")
             probs, alignment = self.probs_fn(x[:, None], y[:, None],
-                    x_mask[:, None], y_mask[:, None])
+                                             x_mask[:, None], y_mask[:, None])
             if return_alignment:
                 return probs, alignment
             else:
                 return probs
+
         return probs_computer
+
 
 def parse_input(state, word2idx, line, raise_unk=False, idx2word=None, unk_sym=-1, null_sym=-1):
     if unk_sym < 0:
         unk_sym = state['unk_sym_source']
     if null_sym < 0:
         null_sym = state['null_sym_source']
-    #seqin = unicode(line).split()
+    # seqin = unicode(line).split()
     seqin = list(unicode(line))
     seqlen = len(seqin)
-    seq = numpy.zeros(seqlen+1, dtype='int64')
-    for idx,sx in enumerate(seqin):
+    seq = numpy.zeros(seqlen + 1, dtype='int64')
+    for idx, sx in enumerate(seqin):
         seq[idx] = word2idx.get(sx, unk_sym)
         if seq[idx] >= state['n_sym_source']:
             seq[idx] = unk_sym

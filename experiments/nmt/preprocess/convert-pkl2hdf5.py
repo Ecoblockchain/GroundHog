@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 import argparse
 import cPickle as pkl
-import gzip
-
+import numpy
 import sys
 
 import tables
-import numpy
 
 parser = argparse.ArgumentParser()
 parser.add_argument("input",
@@ -17,16 +15,16 @@ parser.add_argument("output",
                     help="Output HDF5 file")
 args = parser.parse_args()
 
+
 class Index(tables.IsDescription):
     pos = tables.UInt32Col()
     length = tables.UInt32Col()
 
+
 f = args.output
 f = tables.open_file(f.name, f.mode)
-earrays = f.createEArray(f.root, 'phrases', 
-    tables.Int32Atom(),shape=(0,))
-indices = f.createTable("/", 'indices', 
-    Index, "a table of indices and lengths")
+earrays = f.createEArray(f.root, 'phrases', tables.Int32Atom(), shape=(0,))
+indices = f.createTable("/", 'indices', Index, "a table of indices and lengths")
 
 sfile = open(args.input.name, args.input.mode)
 sarray = pkl.load(sfile)
