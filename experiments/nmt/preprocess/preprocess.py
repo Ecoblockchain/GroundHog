@@ -131,7 +131,7 @@ def create_dictionary():
                     line = line.lower()
                 words = line.strip().split(' ')
                 if args.char:
-                    words = line.strip().decode('utf-8').split()
+                    words = list(line.strip().decode('utf-8'))
                 counter.update(words)
                 global_counter.update(words)
                 sentence_count += 1
