@@ -266,7 +266,7 @@ def find_align(source, model, max_phrase_length, n_samples,
     [lm_model, enc_dec, indx_word_src, indx_word_trgt, state, \
      lm_model_fr_2_en, enc_dec_fr_2_en, state_fr2en] = model
 
-    split_source_sentence = source.strip().split()
+    split_source_sentence = [''.join(i) for i in trigrams('\0\0' + line.strip().decode('utf-8') + '\0\0')]
     n_s = len(split_source_sentence)
 
     # Sampling and computing scores : bottleneck

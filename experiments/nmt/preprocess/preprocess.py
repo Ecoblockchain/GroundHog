@@ -125,11 +125,9 @@ def create_dictionary():
             for line in input_file:
                 if args.lowercase:
                     line = line.lower()
-                words = None
+                words = line.strip().split(' ')
                 if args.char:
                     words = [''.join(i) for i in trigrams('\0\0' + line.strip().decode('utf-8') + '\0\0')]
-                else:
-                    words = line.strip().split(' ')
                 counter.update(words)
                 global_counter.update(words)
                 sentence_count += 1
