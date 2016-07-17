@@ -35,7 +35,6 @@ class RandomSamplePrinter(object):
                 if words[i] == '<eol>':
                     return words[:i + 1]
             return words
-            raise Exception("No end-of-line found")
 
         sample_idx = 0
         while sample_idx < self.state['n_examples']:

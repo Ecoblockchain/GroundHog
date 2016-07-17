@@ -13,6 +13,11 @@ from numpy.lib.stride_tricks import as_strided
 from nltk import trigrams
 import tables
 
+import sys
+
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 parser = argparse.ArgumentParser(
     description="""
 This takes a list of .txt or .txt.gz files and does word counting and

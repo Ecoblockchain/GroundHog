@@ -10,7 +10,6 @@ __authors__ = ("Razvan Pascanu "
                "Caglar Gulcehre ")
 __contact__ = "Razvan Pascanu <r.pascanu@gmail>"
 
-
 import numpy
 import itertools
 import logging
@@ -26,21 +25,22 @@ from groundhog.layers.basic import Model
 
 logger = logging.getLogger(__name__)
 
+
 class LM_Model(Model):
-    def  __init__(self,
-                  cost_layer = None,
-                  sample_fn = None,
-                  valid_fn = None,
-                  noise_fn = None,
-                  clean_before_noise_fn = False,
-                  clean_noise_validation=True,
-                  weight_noise_amount = 0,
-                  indx_word="/data/lisa/data/PennTreebankCorpus/dictionaries.npz",
-                  need_inputs_for_generating_noise=False,
-                  indx_word_src=None,
-                  character_level = False,
-                  exclude_params_for_norm=None,
-                  rng = None):
+    def __init__(self,
+                 cost_layer=None,
+                 sample_fn=None,
+                 valid_fn=None,
+                 noise_fn=None,
+                 clean_before_noise_fn=False,
+                 clean_noise_validation=True,
+                 weight_noise_amount=0,
+                 indx_word="/data/lisa/data/PennTreebankCorpus/dictionaries.npz",
+                 need_inputs_for_generating_noise=False,
+                 indx_word_src=None,
+                 character_level=False,
+                 exclude_params_for_norm=None,
+                 rng=None):
         """
         Constructs a model, that respects the interface required by the
         trainer class.
@@ -107,7 +107,7 @@ class LM_Model(Model):
             self.exclude_params_for_norm = []
         else:
             self.exclude_params_for_norm = exclude_params_for_norm
-        self.need_inputs_for_generating_noise=need_inputs_for_generating_noise
+        self.need_inputs_for_generating_noise = need_inputs_for_generating_noise
         self.cost_layer = cost_layer
         self.validate_step = valid_fn
         self.clean_noise_validation = clean_noise_validation
@@ -116,7 +116,7 @@ class LM_Model(Model):
         self.weight_noise_amount = weight_noise_amount
         self.character_level = character_level
 
-        self.valid_costs = ['cost','ppl']
+        self.valid_costs = ['cost', 'ppl']
         # Assume a single cost
         # We need to merge these lists
         state_below = self.cost_layer.state_below
@@ -129,32 +129,32 @@ class LM_Model(Model):
             scale = numpy.float32(1)
         scale *= numpy.float32(numpy.log(2))
 
-        grad_norm = TT.sqrt(sum(TT.sum(x**2)
-            for x,p in zip(self.param_grads, self.params) if p not in
-                self.exclude_params_for_norm))
+        grad_norm = TT.sqrt(sum(TT.sum(x ** 2)
+                                for x, p in zip(self.param_grads, self.params) if p not in
+                                self.exclude_params_for_norm))
         new_properties = [
-                ('grad_norm', grad_norm),
-                ('log2_p_word', self.train_cost / num_words / scale),
-                ('log2_p_expl', self.cost_layer.cost_per_sample.mean() / scale)]
+            ('grad_norm', grad_norm),
+            ('log2_p_word', self.train_cost / num_words / scale),
+            ('log2_p_expl', self.cost_layer.cost_per_sample.mean() / scale)]
         self.properties += new_properties
 
-        if len(self.noise_params) >0 and weight_noise_amount:
+        if len(self.noise_params) > 0 and weight_noise_amount:
             if self.need_inputs_for_generating_noise:
                 inps = self.inputs
             else:
                 inps = []
-            self.add_noise = theano.function(inps,[],
+            self.add_noise = theano.function(inps, [],
                                              name='add_noise',
-                                             updates = [(p,
-                                                 self.trng.normal(shp_fn(self.inputs),
-                                                     avg =0,
-                                                     std=weight_noise_amount,
-                                                     dtype=p.dtype))
-                                                 for p, shp_fn in
-                                                        zip(self.noise_params,
-                                                         self.noise_params_shape_fn)],
-                                            on_unused_input='ignore')
-            self.del_noise = theano.function(inps,[],
+                                             updates=[(p,
+                                                       self.trng.normal(shp_fn(self.inputs),
+                                                                        avg=0,
+                                                                        std=weight_noise_amount,
+                                                                        dtype=p.dtype))
+                                                      for p, shp_fn in
+                                                      zip(self.noise_params,
+                                                          self.noise_params_shape_fn)],
+                                             on_unused_input='ignore')
+            self.del_noise = theano.function(inps, [],
                                              name='del_noise',
                                              updates=[(p,
                                                        TT.zeros(shp_fn(self.inputs),
@@ -162,11 +162,10 @@ class LM_Model(Model):
                                                       for p, shp_fn in
                                                       zip(self.noise_params,
                                                           self.noise_params_shape_fn)],
-                                            on_unused_input='ignore')
+                                             on_unused_input='ignore')
         else:
             self.add_noise = None
             self.del_noise = None
-
 
     def validate(self, data_iterator, train=False):
         cost = 0
@@ -183,17 +182,17 @@ class LM_Model(Model):
 
             if isinstance(vals, dict):
                 val = vals.values()[0]
-                if val.ndim ==3:
-                    n_steps += val.shape[0]*val.shape[1]
+                if val.ndim == 3:
+                    n_steps += val.shape[0] * val.shape[1]
                 else:
                     n_steps += val.shape[0]
 
-                _rvals = self.validate_step( **vals)
+                _rvals = self.validate_step(**vals)
                 cost += _rvals
             else:
                 # not dict
-                if vals[0].ndim ==3:
-                    n_steps += vals[0].shape[0]*vals[1].shape[1]
+                if vals[0].ndim == 3:
+                    n_steps += vals[0].shape[0] * vals[1].shape[1]
                 else:
                     n_steps += vals[0].shape[0]
                 if self.del_noise and self.clean_noise_validation:
@@ -205,13 +204,12 @@ class LM_Model(Model):
                 _rvals = self.validate_step(*inps)
                 _cost += _rvals
 
-        n_steps = numpy.log(2.)*n_steps
+        n_steps = numpy.log(2.) * n_steps
         cost = cost / n_steps
 
-        entropy = cost# (numpy.log(2.))
-        ppl = 10**(numpy.log(2)*cost/numpy.log(10))
-        return [('cost',entropy), ('ppl',ppl)]
-
+        entropy = cost  # (numpy.log(2.))
+        ppl = 10 ** (numpy.log(2) * cost / numpy.log(10))
+        return [('cost', entropy), ('ppl', ppl)]
 
     def load_dict(self, opts):
         """
@@ -234,11 +232,9 @@ class LM_Model(Model):
         elif self.indx_word_src and '.np' in self.indx_word_src[-4:]:
             self.word_indxs_src = numpy.load(self.indx_word_src)['unique_words']
 
-
-
-    def get_samples(self, length = 30, temp=1, *inps):
+    def get_samples(self, length=30, temp=1, *inps):
         if not hasattr(self, 'word_indxs'):
-           self.load_dict()
+            self.load_dict()
         self._get_samples(self, length, temp, *inps)
 
     def perturb(self, *args, **kwargs):
@@ -262,5 +258,3 @@ class LM_Model(Model):
             else:
                 self.add_noise()
         return inps
-
-
